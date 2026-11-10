@@ -1,0 +1,2989 @@
+{
+  "name": "Vulturus – WhatsApp Real Estate Agent (Pune)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "bc0b1513-88a5-471b-99f4-efd466217461",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        656
+      ],
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppTriggerApi credential>"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "6a15134e-178f-50ee-aab9-092f0ae80356",
+              "leftValue": "={{ $json.messages?.[0]?.id ?? '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c67e7bc5-a2e5-4871-a31b-25c8a65e8f83",
+      "name": "Is User Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        464,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"db_sheet_id\": \"<SESSIONS_SHEET_ID>\",\n  \"wa_phone_number_id\": \"<PHONE_NUMBER_ID>\",\n  \"calendar_id\": \"primary\",\n  \"visit_minutes\": 30,\n  \"open_hour\": 10,\n  \"close_hour\": 19\n}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "5e6dba18-ba60-4010-9afc-90a0f51109b9",
+      "name": "Config (Customer)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5d6f49f8-2221-42bf-84f6-e71e15d4ea53",
+              "name": "phone_number",
+              "value": "={{ $json.messages?.[0]?.from ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b7f8e928-2b76-45bc-a232-174bb34f6d2e",
+              "name": "message",
+              "value": "={{ $json.messages?.[0]?.text?.body ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ffb3f2df-be88-46a1-8722-c4e06aa780ef",
+              "name": "message_id",
+              "value": "={{ $json.messages?.[0]?.id ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "d3826d24-d283-425b-9925-decfb1bfd5bb",
+              "name": "message_type",
+              "value": "={{ $json.messages?.[0]?.type ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "1f78bd61-8ede-4c8b-979a-2aa8e1561c7f",
+              "name": "customer_name",
+              "value": "={{ $json.contacts?.[0]?.profile?.name ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f515b76c-a93a-44c5-bae6-802575f3fd38",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cfe3f2fd-358c-5c9a-81eb-7f187f403ef2",
+              "leftValue": "={{ $json.message_type }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "text"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1ff0ffa0-9f65-42d3-99c6-9fcdba1ca67f",
+      "name": "Is Text Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Customer)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Extract Message').first().json.phone_number }}",
+        "textBody": "Hi! I can read text messages only for now. Please type what you are looking for, for example: 2 BHK in Baner under 90 lakh.",
+        "additionalFields": {}
+      },
+      "id": "8169a619-7f26-4faf-8c04-9a66921042da",
+      "name": "Send Unsupported Type Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        816
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "<SESSIONS_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<SESSIONS_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<SESSIONS_SHEET_ID>/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone_number",
+              "lookupValue": "={{ $('Extract Message').first().json.phone_number }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1795f415-ad6a-4964-9e93-7ff4ab21e871",
+      "name": "Get Session",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1344,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $('Extract Message').first().json;\nconst row = $input.first()?.json || {};\n\nconst phone = String(msg.phone_number || '').trim();\nconst text = String(msg.message || '').trim();\nconst messageId = String(msg.message_id || '');\n\nif (!phone) throw new Error('Customer phone number is missing');\n\n// Meta sometimes delivers the same webhook twice: never answer a message twice.\nif (messageId && String(row.last_message_id || '') === messageId) return [];\n\nconst num = v => { if (v === '' || v === null || v === undefined) return 0; const n = Number(v); return Number.isFinite(n) ? n : 0; };\nconst bool = v => String(v).trim().toLowerCase() === 'true';\nconst hhmm = v => { const m = String(v || '').match(/^(\\d{1,2}):(\\d{2})/); return m ? m[1].padStart(2, '0') + ':' + m[2] : ''; };\nconst ymd = v => { const m = String(v || '').match(/^\\d{4}-\\d{2}-\\d{2}/); return m ? m[0] : ''; };\n\n// A listing ID typed in THIS message wins over the saved one.\nconst typedId = (text.match(/\\bVUL-[A-Z0-9]{4,12}\\b/i) || [])[0] || '';\n\nconst state = {\n  phone,\n  customer_name: row.customer_name || msg.customer_name || '',\n  last_intent: row.last_intent || '',\n  budget_min: num(row.budget_min),\n  budget_max: num(row.budget_max),\n  bhk: num(row.bhk),\n  locality: row.locality || '',\n  locality_flexible: bool(row.locality_flexible),\n  property_type: row.property_type || '',\n  furnishing: row.furnishing || '',\n  possession_pref: row.possession_pref || '',\n  shown_properties: row.shown_properties || '',\n  selected_property_id: typedId ? typedId.toUpperCase() : (row.selected_property_id || ''),\n  meeting_date: ymd(row.meeting_date),\n  meeting_time: hhmm(row.meeting_time),\n  booking_status: row.booking_status || '',\n  history: row.history || ''\n};\n\nconst state_text = [\n  'customer_name: ' + (state.customer_name || 'unknown'),\n  'budget_min_inr: ' + (state.budget_min || 'unknown'),\n  'budget_max_inr: ' + (state.budget_max || 'unknown'),\n  'bhk: ' + (state.bhk || 'unknown'),\n  'locality: ' + (state.locality || 'unknown'),\n  'locality_flexible: ' + state.locality_flexible,\n  'property_type: ' + (state.property_type || 'unknown'),\n  'furnishing: ' + (state.furnishing || 'unknown'),\n  'selected_property_id: ' + (state.selected_property_id || 'none'),\n  'meeting_date: ' + (state.meeting_date || 'none'),\n  'meeting_time: ' + (state.meeting_time || 'none'),\n  'last_intent: ' + (state.last_intent || 'none'),\n  'booking_status: ' + (state.booking_status || 'none')\n].join('\\n');\n\nconst shown_text = String(state.shown_properties).split(';').filter(Boolean).map(x => x.split('|').join(' | ')).join('\\n') || 'none';\nconst history_text = String(state.history).split(' ## ').filter(Boolean).join('\\n') || 'none';\n\nreturn [{ json: { phone, text, message_id: messageId, wa_name: state.customer_name, state, state_text, shown_text, history_text } }];"
+      },
+      "id": "c76b5cf4-fcf2-4613-ad7a-d0e9f4ddf676",
+      "name": "Merge Session State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=TODAY (IST): {{ $now.setZone('Asia/Kolkata').toFormat('cccc, yyyy-MM-dd HH:mm') }}\nWHATSAPP PROFILE NAME (hint only): {{ $('Merge Session State').first().json.wa_name }}\n\nSAVED STATE:\n{{ $('Merge Session State').first().json.state_text }}\n\nSHOWN PROPERTIES (number | id | title):\n{{ $('Merge Session State').first().json.shown_text }}\n\nRECENT CHAT:\n{{ $('Merge Session State').first().json.history_text }}\n\nLATEST CUSTOMER MESSAGE:\n{{ $('Merge Session State').first().json.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are the language-understanding engine of Vulturus, a WhatsApp real estate assistant for buyers in Pune, India.\n\nRead the customer's latest message together with the saved state and recent chat. Return structured output following the rules below.\n\n## INTENTS\n\nChoose exactly one:\n\n- `property_search`: The customer wants to find, browse, filter or compare properties, change search criteria, or asks for more options.\n- `book_visit`: The customer wants to schedule a site visit or meeting, or supplies booking details while a valid property booking is in progress.\n- `general_chat`: Greetings, thanks, questions about the buying process, Pune localities or the service, small talk, or anything unclear or off-topic.\n\nA change to search criteria is always `property_search`, even if the message contains only one word such as \"Pune\", \"Baner\", or \"Kharadi\".\n\n## EXTRACTION RULES\n\n- Use only information the customer said or clearly implied. Never invent values.\n- Use an empty string for unknown text fields and 0 for unknown numeric fields.\n- Budget must be in INR as plain numbers:\n  - 80 lakh = 8000000\n  - 1.2 crore = 12000000\n  - Under/up to X: set budget_max only.\n  - Between X and Y: set both.\n- `bhk` is a number from 1 to 5. 1RK = 1.\n- `locality` is a Pune locality. Examples: Baner, Wakad, Hinjewadi, Kothrud, Viman Nagar, Kharadi, Hadapsar, Aundh, Pimple Saudagar. Correct spelling.\n- `property_type`: apartment, villa, plot, commercial or empty.\n- `furnishing`: unfurnished, semi-furnished, furnished or empty.\n- `selected_property_id`: Use the listing ID from SHOWN PROPERTIES when the customer identifies a property by number, name or ID. Otherwise empty.\n- `meeting_date`: YYYY-MM-DD, resolved using TODAY (IST).\n- `meeting_time`: 24-hour HH:mm. For example, 5pm = 17:00. Vague phrases such as morning or evening are empty.\n- `reset_search`: true only when the customer explicitly asks to start over or forget previous criteria.\n- `reply_language`: en, hi, mr or hinglish, based on the latest message.\n\n## CRITICAL: SAVED STATE UPDATE RULES\n\nThe latest customer message has priority over saved search values.\n\n1. If the customer provides a new locality, replace the saved locality.\n2. If the customer provides a new budget, replace the old budget values.\n3. If the customer provides a new BHK, replace the old BHK.\n4. If the customer provides a new property type or furnishing preference, replace the old value.\n5. Preserve saved values only for fields the customer has not changed.\n6. Never copy an old value when the customer explicitly provides a new value.\n\nExamples:\n\nSaved locality: Wakad\nLatest message: \"Pune\"\nOutput locality: \"Pune\"\n\nSaved locality: Wakad\nLatest message: \"Baner\"\nOutput locality: \"Baner\"\n\nSaved budget_max: 500000\nLatest message: \"Budget 50 lakh\"\nOutput budget_max: 5000000\n\nSaved BHK: 2\nLatest message: \"Need 3 BHK\"\nOutput bhk: 3\n\n## SHORT REPLIES AND CONVERSATIONAL CONTEXT\n\nWhen a property search is in progress, interpret short replies using the saved state and recent chat.\n\nExamples:\n- \"Pune\" = change locality to Pune.\n- \"Baner\" = change locality to Baner.\n- \"3 BHK\" = change BHK to 3.\n- \"50 lakh\" = update budget.\n- \"Furnished\" = update furnishing.\n- \"Yes, nearby localities are fine\" = locality_flexible true.\n- \"No, only Wakad\" = locality_flexible false.\n\nDo not interpret a locality-only reply as general chat when a property search is active.\n\n## LOCALITY FLEXIBILITY\n\nAlways include the boolean field `locality_flexible`.\n\n- If the customer agrees to nearby or surrounding localities, return true.\n- If the customer wants only the originally requested locality, return false.\n- If no preference is expressed, preserve the saved state value.\n\n## BOOKING RULES\n\n- Do not classify a search-criteria change as `book_visit`.\n- Classify as `book_visit` when the customer explicitly asks to schedule a visit or provides booking details for an already selected property.\n- A booking is not valid merely because `booking_status` says `in_progress`.\n- If no property ID is selected and the customer asks to book, use `book_visit` only to initiate the booking conversation; do not invent a property ID.\n- Never invent dates, times or property selections.\n\nAlways return every required output field."
+            }
+          ]
+        }
+      },
+      "id": "38fafdcd-168d-48be-9dc9-b30d61ddde0c",
+      "name": "Understand Message (AI)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1776,
+        656
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"intent\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"property_search\",\n        \"book_visit\",\n        \"general_chat\"\n      ]\n    },\n    \"customer_name\": {\n      \"type\": \"string\"\n    },\n    \"budget_min\": {\n      \"type\": \"number\"\n    },\n    \"budget_max\": {\n      \"type\": \"number\"\n    },\n    \"bhk\": {\n      \"type\": \"number\"\n    },\n    \"locality\": {\n      \"type\": \"string\"\n    },\n    \"property_type\": {\n      \"type\": \"string\"\n    },\n    \"furnishing\": {\n      \"type\": \"string\"\n    },\n    \"selected_property_id\": {\n      \"type\": \"string\"\n    },\n    \"meeting_date\": {\n      \"type\": \"string\"\n    },\n    \"meeting_time\": {\n      \"type\": \"string\"\n    },\n    \"reset_search\": {\n      \"type\": \"boolean\"\n    },\n    \"reply_language\": {\n      \"type\": \"string\"\n    },\n    \"locality_flexible\": {\n      \"type\": \"boolean\"\n    }\n  },\n  \"required\": [\n    \"intent\",\n    \"customer_name\",\n    \"budget_min\",\n    \"budget_max\",\n    \"bhk\",\n    \"locality\",\n    \"property_type\",\n    \"furnishing\",\n    \"selected_property_id\",\n    \"meeting_date\",\n    \"meeting_time\",\n    \"reset_search\",\n    \"reply_language\",\n    \"locality_flexible\"\n  ]\n}\n"
+      },
+      "id": "feb2ec94-3913-4e10-a6f1-003a430d8497",
+      "name": "Intent Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1936,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst base = $('Merge Session State').first().json;\nconst ex = $input.first().json.output || {};\n\nconst s = { ...base.state };\n\n// Reset search fields when customer starts a new search\nif (ex.reset_search === true) {\n  Object.assign(s, {\n    budget_min: 0,\n    budget_max: 0,\n    bhk: 0,\n    locality: '',\n    property_type: '',\n    furnishing: '',\n    shown_properties: '',\n    selected_property_id: '',\n    locality_flexible: false\n  });\n}\n\n// Update text fields only when a new value is provided\n[\n  'customer_name',\n  'locality',\n  'property_type',\n  'furnishing',\n  'selected_property_id',\n  'meeting_date',\n  'meeting_time'\n].forEach(k => {\n  const v = String(ex[k] ?? '').trim();\n  if (v) s[k] = v;\n});\n\n// Update numeric fields only when valid positive numbers are provided\n['budget_min', 'budget_max', 'bhk'].forEach(k => {\n  const v = Number(ex[k]);\n  if (Number.isFinite(v) && v > 0) s[k] = v;\n});\n\n// Preserve the previous preference unless Gemini explicitly returns true/false\nif (typeof ex.locality_flexible === 'boolean') {\n  s.locality_flexible = ex.locality_flexible;\n}\n\nif (s.budget_min && s.budget_max && s.budget_min > s.budget_max) {\n  s.budget_min = 0;\n}\n\nconst allowed = ['property_search', 'book_visit', 'general_chat'];\nconst intent = allowed.includes(ex.intent) ? ex.intent : 'general_chat';\n\ns.last_intent = intent;\n\nif (intent === 'book_visit') {\n  s.booking_status = 'in_progress';\n}\n\nconst state_text = [\n  `customer_name: ${s.customer_name || 'unknown'}`,\n  `budget_min_inr: ${s.budget_min || 'unknown'}`,\n  `budget_max_inr: ${s.budget_max || 'unknown'}`,\n  `bhk: ${s.bhk || 'unknown'}`,\n  `locality: ${s.locality || 'unknown'}`,\n  `locality_flexible: ${s.locality_flexible ?? false}`,\n  `property_type: ${s.property_type || 'unknown'}`,\n  `furnishing: ${s.furnishing || 'unknown'}`,\n  `selected_property_id: ${s.selected_property_id || 'none'}`,\n  `meeting_date: ${s.meeting_date || 'none'}`,\n  `meeting_time: ${s.meeting_time || 'none'}`\n].join('\\n');\n\nreturn [{\n  json: {\n    phone: base.phone,\n message_id: base.message_id || '',\n    text: base.text,\n    wa_name: base.wa_name,\n    intent,\n    reply_language: ex.reply_language || 'en',\n    locality_flexible: s.locality_flexible ?? false,\n    state: s,\n    state_text,\n    shown_text: base.shown_text,\n    history_text: base.history_text\n  }\n}];\n"
+      },
+      "id": "0e5af769-8369-4d30-88b7-178fa9d6fafe",
+      "name": "Merge Extraction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "78aca7dd-4b16-5dd2-8a80-2d3b9bc06263",
+                    "leftValue": "={{ $json.intent }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "property_search"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "property_search"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "2c11438c-d3c6-5900-8b67-21f329a0f512",
+                    "leftValue": "={{ $json.intent }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "book_visit"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "book_visit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "e4035f5f-4db5-5659-bb22-2d368e67f640",
+                    "leftValue": "={{ $json.intent }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "general_chat"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "general_chat"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "79ca84c6-b6ca-46e1-9b97-d515c354c20b",
+      "name": "Route by Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "<PROPERTIES_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Properties",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "Available"
+            }
+          ]
+        },
+        "combineFilters": "OR",
+        "options": {}
+      },
+      "id": "e8e713cd-5f83-4295-af45-1089bbdac256",
+      "name": "Get All Properties",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2560,
+        400
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $('Merge Extraction').first().json.state;\n\n// ---------- helpers ----------\nconst toNum = v => Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')) || 0;\nconst clean = v => String(v == null ? '' : v).replace(/[;|\\n]/g, ',').trim();\nconst norm = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst fmt = p => !p ? 'Price on request'\n  : p >= 1e7 ? '₹' + (p / 1e7).toFixed(2).replace(/\\.?0+$/, '') + ' Cr'\n  : p >= 1e5 ? '₹' + (p / 1e5).toFixed(1).replace(/\\.0$/, '') + ' L'\n  : '₹' + p.toLocaleString('en-IN');\n\n// ---------- Pune locality knowledge ----------\n// Words that mean \"anywhere in Pune\" -> no locality filter.\nconst CITY_WIDE = ['pune', 'pune city', 'any', 'anywhere', 'all', 'all pune', 'whole pune', 'anywhere in pune'];\n// Spelling variants -> one canonical name.\nconst ALIASES = {\n  'hinjawadi': 'hinjewadi', 'hinjewadi phase 1': 'hinjewadi', 'hinjewadi phase 2': 'hinjewadi', 'hinjewadi phase 3': 'hinjewadi',\n  'vimannagar': 'viman nagar', 'kalyaninagar': 'kalyani nagar', 'kp': 'koregaon park', 'karvenagar': 'karve nagar',\n  'pimplesaudagar': 'pimple saudagar', 'pimple saudagaar': 'pimple saudagar', 'magarpatta city': 'magarpatta',\n  'baner road': 'baner', 'balewadi high street': 'balewadi', 'kharadi bypass': 'kharadi', 'wadgaonsheri': 'wadgaon sheri',\n  'shivajinagar': 'shivaji nagar', 'kothrud depot': 'kothrud'\n};\n// Approved nearby areas (used only when the customer says nearby is OK).\nconst NEARBY = {\n  'baner': ['balewadi', 'aundh', 'pashan', 'sus', 'mahalunge', 'bavdhan'],\n  'balewadi': ['baner', 'mahalunge', 'aundh', 'wakad'],\n  'aundh': ['baner', 'pashan', 'bopodi', 'sangvi', 'balewadi'],\n  'wakad': ['tathawade', 'punawale', 'ravet', 'thergaon', 'hinjewadi', 'pimple saudagar', 'pimple nilakh'],\n  'hinjewadi': ['wakad', 'maan', 'marunji', 'tathawade', 'punawale'],\n  'kothrud': ['karve nagar', 'warje', 'erandwane', 'bavdhan'],\n  'kharadi': ['viman nagar', 'wagholi', 'chandan nagar', 'mundhwa', 'wadgaon sheri'],\n  'viman nagar': ['kalyani nagar', 'kharadi', 'lohegaon', 'yerawada', 'wadgaon sheri'],\n  'hadapsar': ['magarpatta', 'mundhwa', 'amanora', 'fursungi', 'wanowrie'],\n  'pimple saudagar': ['pimple nilakh', 'wakad', 'rahatani', 'pimple gurav']\n};\n\nconst canonLoc = v => { let n = ' ' + norm(v).replace(/ pune$/, '').replace(/\\bphase \\d+\\b/g, ' ').replace(/\\s+/g, ' ').trim() + ' '; for (const k in ALIASES) n = n.split(' ' + k + ' ').join(' ' + ALIASES[k] + ' '); return n.trim(); };\nconst locMatches = (listingLoc, wanted) => { const L = canonLoc(listingLoc); return !!L && (L === wanted || (' ' + L + ' ').includes(' ' + wanted + ' ')); };\nconst canonFurn = v => { const n = norm(v); if (!n) return ''; if (n.includes('unfurnish') || /^un /.test(n) || n === 'bare') return 'unfurnished'; if (n.includes('semi')) return 'semi-furnished'; if (n.includes('furnish')) return 'furnished'; return n; };\nconst canonType = v => { const n = norm(v); if (!n) return ''; if (/flat|apartment|apt/.test(n)) return 'apartment'; if (/villa|bungalow|row ?house|independent house/.test(n)) return 'villa'; if (/plot|land/.test(n)) return 'plot'; if (/commercial|office|shop/.test(n)) return 'commercial'; return n; };\n\n// ---------- clean the listing data ----------\nconst completeness = r => ['title','property_type','bhk','locality','address','price_inr','area_sqft','furnishing','image_url'].reduce((n, k) => n + (String(r[k] == null ? '' : r[k]).trim() ? 1 : 0), 0);\nconst unique = new Map();\nfor (const r of $input.all().map(i => i.json)) {\n  const id = String((r && r.listing_id) || '').trim().toUpperCase();\n  if (!id) continue;\n  const prev = unique.get(id);\n  if (!prev || completeness(r) > completeness(prev)) unique.set(id, r);\n}\nconst available = [...unique.values()].filter(r => {\n  if (norm(r.status) !== 'available') return false;\n  if (clean(r.title).length < 3) return false;              // hides junk test rows like \"a\"\n  const t = canonType(r.property_type);\n  if (!t) return false;\n  if ((t === 'apartment' || t === 'villa') && !toNum(r.bhk)) return false;\n  return true;\n});\n\n// ---------- what the customer wants ----------\nconst wantedLoc = canonLoc(s.locality);\nconst cityWide = !wantedLoc || CITY_WIDE.includes(wantedLoc);\nconst wantType = canonType(s.property_type);\nconst wantFurn = canonFurn(s.furnishing);\nconst wantBhk = Number(s.bhk) || 0;\nconst minB = Number(s.budget_min) || 0;\nconst maxB = Number(s.budget_max) || 0;\nconst flexible = s.locality_flexible === true;\nconst noCriteria = cityWide && !wantBhk && !minB && !maxB && !wantType;\n\nconst fits = (r, slack) => {\n  const bhk = toNum(r.bhk), price = toNum(r.price_inr);\n  if (wantType && canonType(r.property_type) !== wantType) return false;\n  if (wantBhk && Math.abs(bhk - wantBhk) > slack.bhk) return false;\n  if (maxB && (!price || price > maxB * (1 + slack.budget))) return false;\n  if (minB && (!price || price < minB * (1 - slack.budget))) return false;\n  if (wantFurn && slack.strictFurn && canonFurn(r.furnishing) !== wantFurn) return false;\n  return true;\n};\nconst EXACT = { bhk: 0, budget: 0, strictFurn: true };\nconst CLOSE = { bhk: 1, budget: 0.15, strictFurn: false };\n\nconst inLoc = cityWide ? available : available.filter(r => locMatches(r.locality, wantedLoc));\nlet matches = inLoc.filter(r => fits(r, EXACT));\nlet match_type = matches.length ? 'exact' : 'none';\n\n// 1) nearby areas (only if the customer agreed)\nif (!matches.length && !cityWide && flexible && NEARBY[wantedLoc]) {\n  matches = available.filter(r => NEARBY[wantedLoc].some(n => locMatches(r.locality, n)) && fits(r, EXACT));\n  if (matches.length) match_type = 'nearby';\n}\n// 2) closest matches in the same area: +/-1 BHK, up to 15% over/under budget, any furnishing\nconst diffNote = r => {\n  const d = [];\n  const bhk = toNum(r.bhk), price = toNum(r.price_inr);\n  if (wantBhk && bhk !== wantBhk) d.push(bhk + ' BHK instead of ' + wantBhk);\n  if (maxB && price > maxB) d.push(Math.round((price / maxB - 1) * 100) + '% above budget');\n  if (minB && price && price < minB) d.push('below minimum budget');\n  if (wantFurn && canonFurn(r.furnishing) !== wantFurn) d.push((clean(r.furnishing) || 'furnishing unknown') + ' instead of ' + wantFurn);\n  return d.join(', ');\n};\nif (!matches.length) {\n  const close = inLoc.filter(r => fits(r, CLOSE));\n  if (close.length) {\n    match_type = 'closest';\n    const score = r => Math.abs(toNum(r.bhk) - wantBhk) * 10 + (maxB ? Math.max(0, toNum(r.price_inr) / maxB - 1) * 100 : 0);\n    matches = close.sort((a, b) => score(a) - score(b));\n  }\n}\nif (match_type === 'exact' || match_type === 'nearby') matches.sort((a, b) => toNum(a.price_inr) - toNum(b.price_inr));\n\nconst picks = matches.slice(0, 3);\n\n// ---------- context for the reply writer ----------\nconst crit = [];\nif (wantBhk) crit.push(wantBhk + ' BHK');\nif (s.property_type) crit.push(s.property_type);\ncrit.push(cityWide ? 'anywhere in Pune' : 'in ' + s.locality);\nif (minB) crit.push('min ' + fmt(minB));\nif (maxB) crit.push('max ' + fmt(maxB));\nif (s.furnishing) crit.push(s.furnishing);\nconst critText = crit.join(', ');\n\nlet context_text;\nif (!picks.length) {\n  match_type = 'none';\n  const near = NEARBY[wantedLoc] ? NEARBY[wantedLoc].slice(0, 4).join(', ') : '';\n  if (!cityWide && !flexible && near) {\n    context_text = 'NO MATCHING PROPERTIES FOUND. Criteria: ' + critText + '. Nothing in ' + s.locality + ' even with small changes. Ask if they are open to nearby areas like ' + near + ', or to change budget/BHK. Do not show any listings.';\n  } else {\n    context_text = 'NO MATCHING PROPERTIES FOUND. Criteria: ' + critText + '. Suggest changing ONE thing (budget, BHK or area). Do not show any listings.';\n  }\n} else {\n  const lines = picks.map((r, i) =>\n    (i + 1) + '. ID ' + r.listing_id + ' | ' + clean(r.title) + ' | ' + (clean(r.locality) || 'Pune') + ' | ' + fmt(toNum(r.price_inr)) +\n    ' | ' + (r.area_sqft || '?') + ' sq ft | ' + (clean(r.furnishing) || 'furnishing n/a') + ' | ' + clean(r.property_type) +\n    (match_type === 'closest' ? ' | DIFFERS: ' + (diffNote(r) || 'minor') : ''));\n  const head = {\n    exact: 'SEARCH RESULTS (match_type: exact).',\n    nearby: 'SEARCH RESULTS (match_type: nearby). Nothing in ' + s.locality + '; these are from nearby areas the customer accepted. Say so.',\n    closest: 'SEARCH RESULTS (match_type: closest). No exact match. These are the closest options; mention what DIFFERS for each.'\n  }[match_type];\n  context_text = head + ' Criteria: ' + critText + '.' + (noCriteria ? ' Customer gave no criteria yet: present these as examples and ask for budget, BHK and area.' : '') + '\\n' + lines.join('\\n');\n}\n\nconst shown_compact = picks.map((r, i) => (i + 1) + '|' + r.listing_id + '|' + clean(r.title)).join(';');\n\nreturn [{ json: { context_text, shown_compact, top_image: (picks[0] && picks[0].image_url) || '', match_type } }];"
+      },
+      "id": "5f373378-a5af-4c3b-8574-e5d3bb805d50",
+      "name": "Filter & Rank Properties",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2784,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c97b7e1-de5f-5192-b4d3-a97f66f14607",
+              "name": "context_type",
+              "value": "property_search",
+              "type": "string"
+            },
+            {
+              "id": "ad92ee68-a155-5d34-842b-59706e49eabd",
+              "name": "context_data",
+              "value": "={{ $json.context_text }}",
+              "type": "string"
+            },
+            {
+              "id": "69830444-fa2b-5770-b97f-d239caf2e175",
+              "name": "fixed_reply",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "9b6d5b64-5a79-5f26-900c-6b29063c5f8a",
+              "name": "image_url",
+              "value": "={{ $json.top_image }}",
+              "type": "string"
+            },
+            {
+              "id": "00b564eb-bbe5-5c2a-ad55-f5180f8f61de",
+              "name": "session_patch_json",
+              "value": "={{ JSON.stringify($json.shown_compact ? { shown_properties: $json.shown_compact } : {}) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "72413e0e-e7b8-4ee5-9ad8-36ae3c27972c",
+      "name": "Context: Property Search",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2992,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "<PROPERTIES_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Properties",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "listing_id",
+              "lookupValue": "={{ $('Merge Extraction').first().json.state.selected_property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "59705e71-e52a-44c4-a06b-10b6fb58f6aa",
+      "name": "Get Selected Property",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2560,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst cfg = $('Config (Customer)').first().json;\nconst ctx = $('Merge Extraction').first().json;\nconst s = ctx.state;\n\nconst rows = $input.all().map(i => i.json);\n\nconst selectedId = String(s.selected_property_id || '')\n  .trim()\n  .toUpperCase();\n\nconst prop = rows.find(r =>\n  String(r.listing_id || '').trim().toUpperCase() === selectedId\n) || null;\n\nconst missing = [];\nconst issues = [];\n\nlet clearDate = false;\nlet clearTime = false;\n\nif (!prop) {\n  missing.push('which property (listing ID or number from the list shown)');\n}\n\nif (!s.customer_name) {\n  missing.push('customer name');\n}\n\n// Validate that the selected listing is actually usable\nif (prop) {\n  if (String(prop.status || '').toLowerCase() !== 'available') {\n    issues.push('this property is not currently available');\n  }\n\n  const propertyDetails = [\n    ['title', prop.title],\n    ['property type', prop.property_type || prop.PropertyType],\n    ['locality', prop.locality || prop.Area],\n    ['price', prop.price_inr || prop.Price],\n    ['address', prop.address]\n  ];\n\n  const emptyDetails = propertyDetails\n    .filter(([name, value]) => !String(value || '').trim())\n    .map(([name]) => name);\n\n  if (emptyDetails.length) {\n    issues.push(\n      `property listing has incomplete details: ${emptyDetails.join(', ')}`\n    );\n  }\n}\n\nconst dOk = /^\\d{4}-\\d{2}-\\d{2}$/.test(s.meeting_date || '');\nconst tOk = /^([01]\\d|2[0-3]):[0-5]\\d$/.test(s.meeting_time || '');\n\nif (!dOk) missing.push('visit date');\nif (!tOk) missing.push('visit time');\n\nconst open = Number(cfg.open_hour);\nconst close = Number(cfg.close_hour);\nconst dur = Number(cfg.visit_minutes);\n\nconst istNow = new Date(\n  Date.now() + 5.5 * 3600 * 1000\n).toISOString().slice(0, 16);\n\nlet endTime = '';\n\nif (dOk && tOk) {\n  const [h, m] = s.meeting_time.split(':').map(Number);\n  const startMin = h * 60 + m;\n  const endMin = startMin + dur;\n\n  endTime =\n    String(Math.floor(endMin / 60) % 24).padStart(2, '0') +\n    ':' +\n    String(endMin % 60).padStart(2, '0');\n\n  if (`${s.meeting_date}T${s.meeting_time}` <= istNow) {\n    issues.push('the requested date and time is already in the past');\n    clearDate = true;\n    clearTime = true;\n  } else if (startMin < open * 60 || endMin > close * 60) {\n    issues.push(\n      `visits are only possible between ${open}:00 and ${close}:00 IST`\n    );\n    clearTime = true;\n  }\n}\n\nconst to12 = t => {\n  const [h, m] = t.split(':').map(Number);\n  return ((h % 12) || 12) + ':' +\n    String(m).padStart(2, '0') +\n    (h >= 12 ? ' PM' : ' AM');\n};\n\nconst date_label = dOk\n  ? new Date(s.meeting_date + 'T00:00:00Z')\n      .toLocaleDateString('en-GB', {\n        weekday: 'short',\n        day: 'numeric',\n        month: 'short',\n        year: 'numeric',\n        timeZone: 'UTC'\n      })\n  : '';\n\nconst time_label = tOk ? to12(s.meeting_time) : '';\n\nconst booking_ready =\n  missing.length === 0 &&\n  issues.length === 0;\n\nconst session_patch = {};\n\nif (clearDate) session_patch.meeting_date = '';\nif (clearTime) session_patch.meeting_time = '';\n\nconst context_text =\n  `BOOKING IN PROGRESS. Still needed: ${missing.join(', ') || 'nothing'}. ` +\n  `Problems: ${issues.join('; ') || 'none'}.\\n` +\n  `Known so far: property=${prop ? (prop.title || prop.listing_id) + ' (' + prop.listing_id + ')' : 'not chosen'}, ` +\n  `name=${s.customer_name || 'missing'}, ` +\n  `date=${s.meeting_date || 'missing'}, ` +\n  `time=${s.meeting_time || 'missing'}.\\n` +\n  `Visits run daily between ${open}:00 and ${close}:00 IST and last ${dur} minutes. ` +\n  `Ask ONLY for what is missing or must change, in one short message. ` +\n  `Do NOT say the visit is confirmed.`;\n\nreturn [{\n  json: {\n    booking_ready,\n    missing,\n    issues,\n    property: prop,\n    start_iso: dOk && tOk\n      ? `${s.meeting_date}T${s.meeting_time}:00+05:30`\n      : '',\n    end_iso: dOk && tOk\n      ? `${s.meeting_date}T${endTime}:00+05:30`\n      : '',\n    date_label,\n    time_label,\n    session_patch,\n    context_text\n  }\n}];\n"
+      },
+      "id": "b45d461f-b345-452b-9dda-b432764a9c12",
+      "name": "Check Booking Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2784,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "585829ec-4e74-57cb-9c5c-80aa096a8843",
+              "leftValue": "={{ $json.booking_ready }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e53b83f8-469a-4501-b8e3-1daaf714e2d6",
+      "name": "Booking Fields Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2992,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "77abe968-6754-4fd6-9c1e-7cb9bfd360a8",
+              "name": "context_type",
+              "value": "booking_incomplete",
+              "type": "string"
+            },
+            {
+              "id": "f307930f-5305-4bcf-a046-72679a852d51",
+              "name": "context_data",
+              "value": "={{ $json.context_text }}",
+              "type": "string"
+            },
+            {
+              "id": "cc84ef68-5b31-422e-b29c-fac1a497909a",
+              "name": "fixed_reply",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "94e2576c-39e9-4517-927c-03f10b1faf75",
+              "name": "image_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "8eac29ec-e88c-4c44-80b1-5cb8fa7122d7",
+              "name": "session_patch_json",
+              "value": "={{ JSON.stringify($json.session_patch || {}) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "874ac025-13bd-4f92-8971-bc746325e354",
+      "name": "Context: Booking Info Needed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3216,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "<CALENDAR_ID>",
+          "mode": "list",
+          "cachedResultName": "<CALENDAR_ID>"
+        },
+        "timeMin": "={{ $('Check Booking Fields').first().json.start_iso }}",
+        "timeMax": "={{ $('Check Booking Fields').first().json.end_iso }}",
+        "options": {}
+      },
+      "id": "d9e5ddde-7534-4c4a-a5f7-fe7668c7d680",
+      "name": "Check Slot Conflicts",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        3216,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleCalendarOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "1634d760-acd9-5fbc-a918-6d75936214a0",
+              "leftValue": "={{ $json.available }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": 0
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6a5c526d-dd93-4077-90e1-95dcf128e138",
+      "name": "Slot Free?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "17fa7b30-89e1-59ea-82a3-18ce2fe26ddd",
+              "name": "context_type",
+              "value": "slot_taken",
+              "type": "string"
+            },
+            {
+              "id": "3167cbf5-612a-55fc-b093-72a74fc74306",
+              "name": "context_data",
+              "value": "=SLOT UNAVAILABLE: {{ $('Check Booking Fields').first().json.date_label }} at {{ $('Check Booking Fields').first().json.time_label }} is already booked. Apologise briefly and ask for another time between {{ $('Config (Customer)').first().json.open_hour }}:00 and {{ $('Config (Customer)').first().json.close_hour }}:00 IST. Do NOT say the visit is confirmed.",
+              "type": "string"
+            },
+            {
+              "id": "ed5748ed-b2ae-577a-9209-dff5b7b85723",
+              "name": "fixed_reply",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "5f5d639e-8c92-5c7c-b211-30af8dd7962d",
+              "name": "image_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "5ec4d1ec-b492-51ed-9472-394ea5a137e2",
+              "name": "session_patch_json",
+              "value": "={{ JSON.stringify({ meeting_time: '' }) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0f043549-70f2-4166-bf82-70e7db574f37",
+      "name": "Context: Slot Taken",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3664,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "<CALENDAR_ID>",
+          "mode": "list",
+          "cachedResultName": "<CALENDAR_ID>"
+        },
+        "start": "={{ $('Check Booking Fields').first().json.start_iso }}",
+        "end": "={{ $('Check Booking Fields').first().json.end_iso }}",
+        "additionalFields": {
+          "description": "=Customer: {{ $('Merge Extraction').first().json.state.customer_name }} (+{{ $('Merge Extraction').first().json.phone }})\nBroker: {{ $('Check Booking Fields').first().json.property.broker_name }} (+{{ $('Check Booking Fields').first().json.property.broker_phone }})\nBooked via Vulturus WhatsApp assistant.",
+          "location": "={{ $('Check Booking Fields').first().json.property.address || $('Check Booking Fields').first().json.property.locality }}",
+          "summary": "=Site visit: {{ $('Check Booking Fields').first().json.property.title }} ({{ $('Check Booking Fields').first().json.property.listing_id }})"
+        }
+      },
+      "id": "71c72ad3-8385-4d3a-beef-4685b5c43c9a",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        3664,
+        528
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleCalendarOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<LEADS_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Leads/Meetings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<LEADS_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<LEADS_SHEET_ID>/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $('Create Calendar Event').first().json.id }}",
+            "customer_name": "={{ $('Merge Extraction').first().json.state.customer_name }}",
+            "phone_number": "={{ $('Merge Extraction').first().json.state.phone }}",
+            "property_id": "={{ $('Check Booking Fields').first().json.property.listing_id }}",
+            "budget": "={{ $('Merge Extraction').first().json.state.budget_max || '' }}",
+            "area": "={{ $('Check Booking Fields').first().json.property.locality }}",
+            "meeting_date": "={{ $('Check Booking Fields').first().json.date_label }}",
+            "meeting_time": "={{ $('Check Booking Fields').first().json.time_label }}",
+            "conversation_summary": "={{ $('Merge Extraction').first().json.history_text || '' }}",
+            "status": "confirmed",
+            "created_at": "={{ $now.toISO() }}",
+            "id": "={{ $('Create Calendar Event').first().json.id }}",
+            "start": "={{ JSON.stringify($('Create Calendar Event').first().json.start) }}",
+            "end": "={{ JSON.stringify($('Create Calendar Event').first().json.end) }}",
+            "creator": "={{ JSON.stringify($('Create Calendar Event').first().json.creator) }}",
+            "organizer": "={{ JSON.stringify($('Create Calendar Event').first().json.organizer) }}",
+            "created": "={{ $('Create Calendar Event').first().json.created }}",
+            "updated": "={{ $('Create Calendar Event').first().json.updated }}",
+            "etag": "={{ $('Create Calendar Event').first().json.etag }}",
+            "eventType": "={{ $('Create Calendar Event').first().json.eventType }}",
+            "htmlLink": "={{ $('Create Calendar Event').first().json.htmlLink }}",
+            "iCalUID": "={{ $('Create Calendar Event').first().json.iCalUID }}",
+            "kind": "={{ $('Create Calendar Event').first().json.kind }}",
+            "reminders": "={{ JSON.stringify($('Create Calendar Event').first().json.reminders) }}",
+            "sequence": "={{ $('Create Calendar Event').first().json.sequence }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "property_id",
+              "displayName": "property_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget",
+              "displayName": "budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "area",
+              "displayName": "area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meeting_date",
+              "displayName": "meeting_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meeting_time",
+              "displayName": "meeting_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "conversation_summary",
+              "displayName": "conversation_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_score",
+              "displayName": "lead_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "start",
+              "displayName": "start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "end",
+              "displayName": "end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "creator",
+              "displayName": "creator",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "organizer",
+              "displayName": "organizer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created",
+              "displayName": "created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated",
+              "displayName": "updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "etag",
+              "displayName": "etag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eventType",
+              "displayName": "eventType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "htmlLink",
+              "displayName": "htmlLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "iCalUID",
+              "displayName": "iCalUID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reminders",
+              "displayName": "reminders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sequence",
+              "displayName": "sequence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b8e136f5-7174-4551-9b9d-f9a46af192d1",
+      "name": "Save Broker Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3872,
+        528
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Customer)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ String($('Check Booking Fields').first().json.property.broker_phone || '') }}",
+        "textBody": "=🔔 *New site visit booked*\n\nProperty: {{ $('Check Booking Fields').first().json.property.title }} ({{ $('Check Booking Fields').first().json.property.listing_id }})\nCustomer: {{ $('Merge Extraction').first().json.state.customer_name }} (+{{ $('Merge Extraction').first().json.phone }})\nDate: {{ $('Check Booking Fields').first().json.date_label }}\nTime: {{ $('Check Booking Fields').first().json.time_label }}\n\nBooked via Vulturus.",
+        "additionalFields": {}
+      },
+      "id": "9d917880-aa72-4679-8633-45ab154efd9a",
+      "name": "Notify Broker (Visit)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        4096,
+        528
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0a56735d-0060-570e-a7ea-8f23207e4b20",
+              "name": "context_type",
+              "value": "booking_confirmed",
+              "type": "string"
+            },
+            {
+              "id": "323f1d38-ee67-54ba-89fb-e6cc20cc8112",
+              "name": "context_data",
+              "value": "Booking confirmed by system.",
+              "type": "string"
+            },
+            {
+              "id": "6c3b88a9-96ee-5098-a269-b4305462f4d8",
+              "name": "fixed_reply",
+              "value": "=✅ *Site visit confirmed!*\n\n🏠 {{ $('Check Booking Fields').first().json.property.title }}\n📍 {{ $('Check Booking Fields').first().json.property.locality }}\n👤 {{ $('Merge Extraction').first().json.state.customer_name }}\n📅 {{ $('Check Booking Fields').first().json.date_label }}\n⏰ {{ $('Check Booking Fields').first().json.time_label }}\n\nBroker {{ $('Check Booking Fields').first().json.property.broker_name }} will meet you at the property. Reply here if you need to reschedule or want to see more options.",
+              "type": "string"
+            },
+            {
+              "id": "14281849-7efb-53c6-8a2e-91653479e1af",
+              "name": "image_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "e5b16fbd-2d6e-5b40-9904-7bae2f5fe980",
+              "name": "session_patch_json",
+              "value": "={{ JSON.stringify({ booking_status: 'confirmed', selected_property_id: $('Check Booking Fields').first().json.property.listing_id, meeting_date: '', meeting_time: '' }) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7ca6d4bf-7f2e-4cde-81e0-7c06ebba7f7a",
+      "name": "Context: Booking Confirmed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4320,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "97ae26b9-2e0b-584a-b282-1696d167eff2",
+              "name": "context_type",
+              "value": "general_chat",
+              "type": "string"
+            },
+            {
+              "id": "cc03726a-d40d-5eea-8844-057d8d9eb3b9",
+              "name": "context_data",
+              "value": "=General conversation. Customer state:\n{{ $('Merge Extraction').first().json.state_text }}",
+              "type": "string"
+            },
+            {
+              "id": "f0597563-5134-5e6f-aaf3-9d1ef2c5fc26",
+              "name": "fixed_reply",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "d8cb1f7b-439f-54bf-8476-9cd0c81fa06a",
+              "name": "image_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "69bf0ba7-9acd-5572-8d79-bbe6f87ce256",
+              "name": "session_patch_json",
+              "value": "{}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f58b5391-e2b2-48f6-ba13-d3d2ea3c8e5c",
+      "name": "Context: General Chat",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "86716a32-7c8f-4b54-9071-42c0f19bacc2",
+      "name": "Unify Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4544,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "2789fb95-8c3e-55b2-bc99-814c9ad8bb54",
+              "leftValue": "={{ $json.fixed_reply }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aacb465c-39b3-4751-b2c0-1b86052ddc0a",
+      "name": "Has Fixed Reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ca79e2b-b1bf-5df4-9d0c-744db9e72384",
+              "name": "final_reply",
+              "value": "={{ $json.fixed_reply }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d9422adc-07d8-4a17-9dc8-2af6a8825085",
+      "name": "Use Fixed Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4976,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CONTEXT TYPE: {{ $json.context_type }}\nREPLY LANGUAGE: {{ $('Merge Extraction').first().json.reply_language }}\nCUSTOMER MESSAGE: {{ $('Merge Extraction').first().json.text }}\n\nCUSTOMER STATE:\n{{ $('Merge Extraction').first().json.state_text }}\n\nRECENT CHAT:\n{{ $('Merge Extraction').first().json.history_text }}\n\nCONTEXT DATA:\n{{ $json.context_data }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are Vulturus Assistant, a friendly WhatsApp real estate helper for home buyers in Pune, India.\n\nSTYLE: warm, short and clear (under 900 characters unless listing properties). Plain WhatsApp text: *single asterisks* for bold, a few emojis, no markdown headings, tables or links. Reply in REPLY LANGUAGE (en = English, hi = Hindi in Devanagari, mr = Marathi in Devanagari, hinglish = Hindi in Roman letters).\n\nFACT RULES: Use ONLY facts in CONTEXT DATA and CUSTOMER STATE. Never invent properties, prices, availability, brokers, dates or amenities. Never share any phone number. Never say a visit is booked or confirmed — only the system does that. If you don't know something, say you will check.\n\nBY CONTEXT TYPE:\n- property_search:\n  • match_type exact → numbered list (same numbers as given): title, area, price, size, furnishing, and the ID.\n  • match_type nearby → first say nothing was available in their area, so these are from nearby areas; then the list.\n  • match_type closest → say there was no exact match; list the closest options and for each, briefly say what differs.\n  • NO MATCHING PROPERTIES FOUND → say so kindly and follow the suggestion in the context. Never list properties.\n  End the results by inviting them to reply with the number (e.g. \"1\") to book a site visit.\n- booking_incomplete: follow the context instructions exactly. Ask only for what is missing or must change, in one short message.\n- slot_taken: apologise briefly and ask for another time within visiting hours.\n- general_chat: answer helpfully about buying a home or Pune areas in general terms (no legal, tax or investment guarantees), then gently ask for budget, BHK and area if they are unknown.\n\nEnd with at most one question."
+            }
+          ]
+        }
+      },
+      "id": "22124669-8d8d-46a5-a5e7-c1b0d4f9270e",
+      "name": "Write Reply (AI)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        4976,
+        800
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=REPLY LANGUAGE: {{ $('Merge Extraction').first().json.reply_language }}\nCUSTOMER MESSAGE: {{ $('Merge Extraction').first().json.text }}\n\nCONTEXT DATA:\n{{ $('Unify Context').first().json.context_data }}\n\nDRAFT REPLY:\n{{ $json.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a strict quality reviewer for a WhatsApp real estate assistant. Compare the DRAFT REPLY with the CONTEXT DATA.\n\nSet safe to false if the draft: invents listings, prices, availability or any detail not in the context; says a site visit is booked or confirmed (only the system confirms bookings); shares phone numbers or other personal data; gives legal, tax or investment advice or guarantees; promises discounts or negotiation outcomes; is abusive, discriminatory or off-topic; or is not in the requested reply language.\n\nIf safe is false, write revised_reply: a corrected WhatsApp-style reply that follows the same rules and language. If safe is true, revised_reply must be an empty string. Put a one-line explanation in issues."
+            }
+          ]
+        }
+      },
+      "id": "06b3a195-4bba-4561-8fce-70ed39c71422",
+      "name": "Guardrail Check",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        5200,
+        800
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n \"type\": \"object\",\n \"properties\": {\n  \"safe\": {\n   \"type\": \"boolean\"\n  },\n  \"issues\": {\n   \"type\": \"string\"\n  },\n  \"revised_reply\": {\n   \"type\": \"string\"\n  }\n },\n \"required\": [\n  \"safe\",\n  \"issues\",\n  \"revised_reply\"\n ]\n}"
+      },
+      "id": "4a034ca7-fe7e-4714-9dac-d723f51c7a3a",
+      "name": "Guardrail Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        5312,
+        1056
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = String($('Write Reply (AI)').first().json.text || '').trim();\nconst g = $input.first().json.output;\nconst fallback = 'Sorry, I could not process that just now. Could you tell me your budget, BHK and preferred area in Pune?';\nlet reply;\nif (g && g.safe === true && draft) reply = draft;\nelse if (g && String(g.revised_reply || '').trim()) reply = String(g.revised_reply).trim();\nelse if (!g && draft && !/confirm|booked|बुक|कन्फर्म/i.test(draft)) reply = draft;\nelse reply = fallback;\nreturn [{ json: { final_reply: reply.slice(0, 3800) } }];"
+      },
+      "id": "e6bf0c83-238d-4d93-95b7-6e4c741f0b66",
+      "name": "Finalize Guarded Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5424,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Unify Context').first().json;\nconst base = $('Merge Extraction').first().json;\nconst s = Object.assign({}, base.state);\nlet patch = {};\ntry { patch = JSON.parse(ctx.session_patch_json || '{}'); } catch (e) { patch = {}; }\nObject.assign(s, patch);\nconst reply = String($input.first().json.final_reply || '');\nconst clip = (t, n) => String(t || '').replace(/\\s+/g, ' ').slice(0, n);\nconst turns = (s.history ? String(s.history).split(' ## ') : []).filter(Boolean);\nturns.push('U: ' + clip(base.text, 160) + ' | A: ' + clip(reply, 240));\ns.history = turns.slice(-4).join(' ## ');\nreturn [{ json: Object.assign({}, s, {\n  last_message_id: base.message_id || '',\n  last_message: base.text,\n  final_reply: reply,\n  image_url: ctx.image_url || ''\n}) }];"
+      },
+      "id": "2eacdfe0-937f-4ccf-a296-e9c9ab04b7b7",
+      "name": "Compose Outgoing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5632,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "<SESSIONS_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<SESSIONS_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<SESSIONS_SHEET_ID>/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone_number": "={{ $('Compose Outgoing').first().json.phone }}",
+            "customer_name": "={{ $('Compose Outgoing').first().json.customer_name }}",
+            "last_intent": "={{ $('Compose Outgoing').first().json.last_intent }}",
+            "budget_min": "={{ $('Compose Outgoing').first().json.budget_min }}",
+            "budget_max": "={{ $('Compose Outgoing').first().json.budget_max }}",
+            "bhk": "={{ $('Compose Outgoing').first().json.bhk }}",
+            "locality": "={{ $('Compose Outgoing').first().json.locality }}",
+            "property_type": "={{ $('Compose Outgoing').first().json.property_type }}",
+            "furnishing": "={{ $('Compose Outgoing').first().json.furnishing }}",
+            "possession_pref": "={{ $('Compose Outgoing').first().json.possession_pref }}",
+            "shown_properties": "={{ $('Compose Outgoing').first().json.shown_properties }}",
+            "selected_property_id": "={{ $('Compose Outgoing').first().json.selected_property_id }}",
+            "meeting_date": "={{ $('Compose Outgoing').first().json.meeting_date }}",
+            "meeting_time": "={{ $('Compose Outgoing').first().json.meeting_time }}",
+            "booking_status": "={{ $('Compose Outgoing').first().json.booking_status }}",
+            "history": "={{ $('Compose Outgoing').first().json.history }}",
+            "last_message": "={{ $('Compose Outgoing').first().json.last_message }}",
+            "locality_flexible": "={{ $('Compose Outgoing').first().json.locality_flexible }}",
+            "last_message_id": "={{ $('Compose Outgoing').first().json.last_message_id }}",
+            "last_updated": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "phone_number"
+          ],
+          "schema": [
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_intent",
+              "displayName": "last_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget_min",
+              "displayName": "budget_min",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget_max",
+              "displayName": "budget_max",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bhk",
+              "displayName": "bhk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "property_type",
+              "displayName": "property_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "furnishing",
+              "displayName": "furnishing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "possession_pref",
+              "displayName": "possession_pref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "shown_properties",
+              "displayName": "shown_properties",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "selected_property_id",
+              "displayName": "selected_property_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meeting_date",
+              "displayName": "meeting_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meeting_time",
+              "displayName": "meeting_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "booking_status",
+              "displayName": "booking_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "history",
+              "displayName": "history",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_message",
+              "displayName": "last_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_updated",
+              "displayName": "last_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "locality_flexible",
+              "displayName": "locality_flexible",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_message_id",
+              "displayName": "last_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f6a8e616-2665-49ee-8f2a-a2de48e4c891",
+      "name": "Save Session",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        6080,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Customer)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Compose Outgoing').first().json.phone }}",
+        "textBody": "={{ $('Compose Outgoing').first().json.final_reply }}",
+        "additionalFields": {}
+      },
+      "id": "ea272a9f-1576-4f66-bc58-112c1ab47023",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        5856,
+        656
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1500,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "a8d5f2d5-3945-5ba7-852b-fe0e26f11ba4",
+              "leftValue": "={{ $('Compose Outgoing').first().json.image_url }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "49211e1c-896d-412b-b167-fdf77d194fe3",
+      "name": "Has Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6304,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Customer)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Compose Outgoing').first().json.phone }}",
+        "messageType": "image",
+        "mediaLink": "={{ $('Compose Outgoing').first().json.image_url }}",
+        "additionalFields": {}
+      },
+      "id": "6f09fa9d-acd1-4ca6-88c1-587fb041cabc",
+      "name": "Send Property Image",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        6512,
+        576
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Customer)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Extract Message').first().json.phone_number }}",
+        "textBody": "Sorry, I am having trouble right now. Please try again in a minute, or tell me your budget, BHK and area in Pune.",
+        "additionalFields": {}
+      },
+      "id": "f16f63c1-1a47-4403-b34d-45990057410c",
+      "name": "Send Fallback Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        4544,
+        1056
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "<BROKER_FORM_RESPONSES_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Broker's Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<BROKER_FORM_RESPONSES_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "<FORM_SHEET_GID>",
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<BROKER_FORM_RESPONSES_SHEET_ID>/edit#gid=<FORM_SHEET_GID>"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "fa8d51c3-fc12-4717-bdb4-1a53a067a10b",
+      "name": "Form Response Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1856
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsTriggerOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"city\": \"Pune\",\n  \"db_spreadsheet_id\": \"<BROKER_FORM_RESPONSES_SHEET_ID>\",\n  \"wa_phone_number_id\": \"<PHONE_NUMBER_ID>\"\n}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "f9e575a5-e7b9-4095-928d-b5cb34706886",
+      "name": "Config (Broker)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        1856
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const city = $('Config (Broker)').first().json.city || 'Pune';\nconst clean = v => String(v == null ? '' : v).trim();\n\n// \"85 lakh\" / \"1.2 Cr\" / \"8500000\" -> INR\nconst parsePrice = value => {\n  const s = clean(value).toLowerCase().replace(/,/g, '').replace(/₹/g, '').trim();\n  const m = s.match(/(\\d+(?:\\.\\d+)?)/);\n  if (!m) return null;\n  const amount = Number(m[1]);\n  if (!Number.isFinite(amount)) return null;\n  if (/(cr|crore)/.test(s)) return Math.round(amount * 10000000);\n  if (/(lakh|lac|\\bl\\b)/.test(s)) return Math.round(amount * 100000);\n  return Math.round(amount);\n};\n\nconst out = [];\nfor (const item of $input.all()) {\n  const row = item.json;\n  const keys = Object.keys(row);\n  const pick = (...candidates) => {\n    for (const c of candidates) { const k = keys.find(x => x.trim().toLowerCase() === c.toLowerCase()); if (k && clean(row[k])) return clean(row[k]); }\n    for (const c of candidates) { const k = keys.find(x => x.toLowerCase().includes(c.toLowerCase())); if (k && clean(row[k])) return clean(row[k]); }\n    return '';\n  };\n\n  const title = pick('property title', 'title');\n  if (!title) continue; // skip empty / test submissions\n\n  let phone = pick('broker whatsapp number', 'whatsapp number', 'broker phone', 'phone', 'mobile').replace(/\\D/g, '').replace(/^0+/, '');\n  if (phone.length === 10) phone = '91' + phone;\n\n  const photos = pick('property photos', 'photo', 'image', 'picture');\n  const ids = [...photos.matchAll(/(?:[?&]id=|\\/d\\/)([-\\w]{20,})/g)].map(m => m[1]);\n  if (!ids.length && /^[a-zA-Z0-9_-]{20,}$/.test(photos)) ids.push(photos);\n  const uniqueIds = [...new Set(ids)];\n\n  const locality = pick('locality', 'neighbourhood', 'neighborhood');\n  const address = pick('full address', 'address');\n  const areaMatch = pick('area (sq ft)', 'carpet area', 'built up area', 'sq ft', 'sqft', 'area').replace(/,/g, '').match(/\\d+(?:\\.\\d+)?/);\n  const bhkMatch = pick('bhk', 'bedroom').match(/\\d+/);\n\n  out.push({ json: {\n    listing_id: 'VUL-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).slice(2, 6).toUpperCase(),\n    broker_name: pick('broker name', 'your name'),\n    broker_phone: phone,\n    title,\n    property_type: pick('property type', 'type').toLowerCase(),\n    bhk: bhkMatch ? Number(bhkMatch[0]) : null,\n    locality,\n    address,\n    price_inr: parsePrice(pick('price')),\n    area_sqft: areaMatch ? Number(areaMatch[0]) : null,\n    furnishing: pick('furnishing').toLowerCase(),\n    description: pick('description', 'details'),\n    drive_file_ids: uniqueIds.join(','),\n    primary_photo_id: uniqueIds[0] || '',\n    image_url: uniqueIds[0] ? 'https://drive.google.com/thumbnail?id=' + uniqueIds[0] + '&sz=w1600' : '',\n    address_query: [address, locality, city].filter(Boolean).join(', ')\n  } });\n}\nreturn out;"
+      },
+      "id": "ef78ae01-7ca4-470c-937d-754d41800042",
+      "name": "Normalize Listing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        1856
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "36802bb8-6415-56ce-ac21-f0a4c3a7d2fe",
+              "leftValue": "={{ $json.primary_photo_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96891db3-4197-431c-aea9-7c1806b84ede",
+      "name": "Has Photo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        896,
+        1856
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.primary_photo_id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "id": "7e4a8b14-0547-4ea8-a86e-a6330901331f",
+      "name": "Make Photo Public",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        1760
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleDriveOAuth2Api credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const listings = $input.all();\n\nreturn listings.map(item => {\n  const L = item.json;\n\n  return {\n    json: {\n      listing_id: L.listing_id,\n      status: 'Available',\n      title: L.title,\n      property_type: L.property_type,\n      bhk: L.bhk,\n      locality: L.locality,\n      address: L.address,\n      lat: '',\n      lng: '',\n      price_inr: L.price_inr,\n      area_sqft: L.area_sqft,\n      furnishing: L.furnishing,\n      description: L.description,\n      image_url: L.image_url,\n      drive_file_ids: L.drive_file_ids,\n      broker_name: L.broker_name,\n      broker_phone: L.broker_phone,\n      maps_link: '',\n      created_at: $now\n        .setZone('Asia/Kolkata')\n        .toFormat('yyyy-MM-dd HH:mm:ss')\n    }\n  };\n});"
+      },
+      "id": "8e4216c7-4a3e-425b-b20a-8bbca74cf90c",
+      "name": "Build Property Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        1856
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<PROPERTIES_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Properties",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit#gid=0",
+          "__regex": "https:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/[0-9a-zA-Z\\-_]+.*\\#gid=([0-9]+)"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Property id",
+              "displayName": "Property id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Area",
+              "displayName": "Area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Micro_area",
+              "displayName": "Micro_area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PropertyType",
+              "displayName": "PropertyType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "BHK",
+              "displayName": "BHK",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Carpet area",
+              "displayName": "Carpet area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "possession_status",
+              "displayName": "possession_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "builder",
+              "displayName": "builder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "parking",
+              "displayName": "parking",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amenities",
+              "displayName": "amenities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "landmarks",
+              "displayName": "landmarks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "latitude",
+              "displayName": "latitude",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "longitude",
+              "displayName": "longitude",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "maps_link",
+              "displayName": "maps_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_urls",
+              "displayName": "image_urls",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "broker_name",
+              "displayName": "broker_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "broker_contact",
+              "displayName": "broker_contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_added",
+              "displayName": "date_added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "availability",
+              "displayName": "availability",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "listing_id",
+              "displayName": "listing_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "property_type",
+              "displayName": "property_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bhk",
+              "displayName": "bhk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lat",
+              "displayName": "lat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lng",
+              "displayName": "lng",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "price_inr",
+              "displayName": "price_inr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "area_sqft",
+              "displayName": "area_sqft",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "furnishing",
+              "displayName": "furnishing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "drive_file_ids",
+              "displayName": "drive_file_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "broker_phone",
+              "displayName": "broker_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8dea5281-f43d-4fdd-a129-352d767ae8dc",
+      "name": "Save Property",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1776,
+        1856
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Broker)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ $json.broker_phone }}",
+        "textBody": "=✅ Your listing is live on Vulturus!\n\n*Listing ID:* {{ $json.listing_id }}\n*Property:* {{ $json.title }}\n*Location:* {{ $json.locality }}\n*Type:* {{ $json.property_type }}\n*BHK:* {{ $json.bhk || '-' }}\n*Price:* {{ $json.price_inr ? '₹' + Number($json.price_inr).toLocaleString('en-IN') : 'On request' }}\n\nBuyers on WhatsApp can now discover your property. We will notify you when a site visit is booked.\n\nThank you for listing with Vulturus! 🏡",
+        "additionalFields": {}
+      },
+      "id": "371c2d64-4dcb-447e-a685-77960c928269",
+      "name": "Notify Broker (Listing Live)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        1856
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Vulturus – WhatsApp Real Estate Agent (Pune)\n**Credentials:** WhatsApp, Google Sheets, Calendar, Drive, **OpenAI**.\n**Sheets:** Sessions (incl. `locality_flexible`, `last_message_id`), Properties, Leads/Meetings, Broker form responses.\n**Edits are drafts** – press *Publish* to make them live.",
+        "height": 380,
+        "width": 760,
+        "color": 4
+      },
+      "id": "89ec7277-f1d2-44c3-843e-ce2291c9529a",
+      "name": "Note: Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "content": "**Customer flow** – WhatsApp → OpenAI (understand message) → Switch on `intent` → search / booking / chat → context → OpenAI (write reply) → OpenAI guardrail → send reply → save session.\nBooking confirmations are fixed text. Search understands Pune spelling variants, nearby areas and closest matches.",
+        "height": 140,
+        "width": 760,
+        "color": 6
+      },
+      "id": "c975cbea-0540-48c1-83aa-a5a332611979",
+      "name": "Note: Customer Flow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "**Wiring rule:** after WhatsApp / Calendar / Sheets nodes `$json` is replaced. Always reference upstream nodes by name, e.g. `$('Check Booking Fields').first().json`.",
+        "height": 140,
+        "width": 700,
+        "color": 3
+      },
+      "id": "3455f8e7-c6ab-41f1-ab3b-7a33f2801c0f",
+      "name": "Note: Rules",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3232,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "**Broker flow** – Google Form → responses sheet (polled every minute) → normalise (empty forms skipped) → append to Properties → WhatsApp broker. In parallel: first photo is made public so WhatsApp can show it.\n⚠️ Broker WhatsApp messages need an approved Meta *template* if the broker hasn't messaged you in 24h.",
+        "height": 140,
+        "width": 760,
+        "color": 6
+      },
+      "id": "f71c67e8-9cf0-4833-ad07-edb829b1c654",
+      "name": "Note: Broker Flow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        192,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "chat-latest",
+          "mode": "list",
+          "cachedResultName": "chat-latest"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxRetries": 2
+        }
+      },
+      "id": "894a2f61-a8ed-4bf2-84ae-02d11fa296ec",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1776,
+        976
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your openAiApi credential>"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is User Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is User Message?": {
+      "main": [
+        [
+          {
+            "node": "Config (Customer)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Config (Customer)": {
+      "main": [
+        [
+          {
+            "node": "Extract Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          {
+            "node": "Is Text Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Text Message?": {
+      "main": [
+        [
+          {
+            "node": "Get Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Unsupported Type Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Session": {
+      "main": [
+        [
+          {
+            "node": "Merge Session State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Session State": {
+      "main": [
+        [
+          {
+            "node": "Understand Message (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Understand Message (AI)": {
+      "main": [
+        [
+          {
+            "node": "Merge Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Understand Message (AI)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrail Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Guardrail Check",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Extraction": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Get All Properties",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Selected Property",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Context: General Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Context: General Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Properties": {
+      "main": [
+        [
+          {
+            "node": "Filter & Rank Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Rank Properties": {
+      "main": [
+        [
+          {
+            "node": "Context: Property Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context: Property Search": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Selected Property": {
+      "main": [
+        [
+          {
+            "node": "Check Booking Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Booking Fields": {
+      "main": [
+        [
+          {
+            "node": "Booking Fields Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Fields Complete?": {
+      "main": [
+        [
+          {
+            "node": "Check Slot Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Context: Booking Info Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context: Booking Info Needed": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slot Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Slot Free?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Free?": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Context: Slot Taken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context: Slot Taken": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Save Broker Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Broker Lead": {
+      "main": [
+        [
+          {
+            "node": "Notify Broker (Visit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Broker (Visit)": {
+      "main": [
+        [
+          {
+            "node": "Context: Booking Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context: Booking Confirmed": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context: General Chat": {
+      "main": [
+        [
+          {
+            "node": "Unify Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unify Context": {
+      "main": [
+        [
+          {
+            "node": "Has Fixed Reply?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Fixed Reply?": {
+      "main": [
+        [
+          {
+            "node": "Use Fixed Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Reply (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Reply (AI)": {
+      "main": [
+        [
+          {
+            "node": "Guardrail Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrail Check": {
+      "main": [
+        [
+          {
+            "node": "Finalize Guarded Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Fixed Reply": {
+      "main": [
+        [
+          {
+            "node": "Compose Outgoing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Guarded Reply": {
+      "main": [
+        [
+          {
+            "node": "Compose Outgoing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Outgoing": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Session": {
+      "main": [
+        [
+          {
+            "node": "Has Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply": {
+      "main": [
+        [
+          {
+            "node": "Save Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Image?": {
+      "main": [
+        [
+          {
+            "node": "Send Property Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Response Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config (Broker)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config (Broker)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Listing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Listing": {
+      "main": [
+        [
+          {
+            "node": "Has Photo?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Property Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Photo?": {
+      "main": [
+        [
+          {
+            "node": "Make Photo Public",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Property Row": {
+      "main": [
+        [
+          {
+            "node": "Save Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Property": {
+      "main": [
+        [
+          {
+            "node": "Notify Broker (Listing Live)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Broker (Listing Live)": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Understand Message (AI)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Write Reply (AI)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Guardrail Check",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

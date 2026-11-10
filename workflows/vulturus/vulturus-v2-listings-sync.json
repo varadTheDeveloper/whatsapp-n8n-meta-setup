@@ -1,0 +1,1115 @@
+{
+  "name": "Vulturus v2 – Listings & sync",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "<BROKER_FORM_RESPONSES_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Broker's Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<BROKER_FORM_RESPONSES_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "<FORM_SHEET_GID>",
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<BROKER_FORM_RESPONSES_SHEET_ID>/edit#gid=<FORM_SHEET_GID>"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "53cfb76d-04a0-4ea6-9af9-bedb9d1a7acc",
+      "name": "Form Response Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsTriggerOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"city\": \"Pune\",\n  \"db_spreadsheet_id\": \"<BROKER_FORM_RESPONSES_SHEET_ID>\",\n  \"wa_phone_number_id\": \"<PHONE_NUMBER_ID>\"\n}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "774ce3c2-31d2-4e08-90c2-ceea6b499df4",
+      "name": "Config (Broker)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const city = $('Config (Broker)').first().json.city || 'Pune';\nconst clean = v => String(v == null ? '' : v).trim();\n\n// \"85 lakh\" / \"1.2 Cr\" / \"8500000\" -> INR\nconst parsePrice = value => {\n  const s = clean(value).toLowerCase().replace(/,/g, '').replace(/₹/g, '').trim();\n  const m = s.match(/(\\d+(?:\\.\\d+)?)/);\n  if (!m) return null;\n  const amount = Number(m[1]);\n  if (!Number.isFinite(amount)) return null;\n  if (/(cr|crore)/.test(s)) return Math.round(amount * 10000000);\n  if (/(lakh|lac|\\bl\\b)/.test(s)) return Math.round(amount * 100000);\n  return Math.round(amount);\n};\n\nconst out = [];\nfor (const item of $input.all()) {\n  const row = item.json;\n  const keys = Object.keys(row);\n  const pick = (...candidates) => {\n    for (const c of candidates) { const k = keys.find(x => x.trim().toLowerCase() === c.toLowerCase()); if (k && clean(row[k])) return clean(row[k]); }\n    for (const c of candidates) { const k = keys.find(x => x.toLowerCase().includes(c.toLowerCase())); if (k && clean(row[k])) return clean(row[k]); }\n    return '';\n  };\n\n  const title = pick('property title', 'title');\n  if (!title) continue; // skip empty / test submissions\n\n  let phone = pick('broker whatsapp number', 'whatsapp number', 'broker phone', 'phone', 'mobile').replace(/\\D/g, '').replace(/^0+/, '');\n  if (phone.length === 10) phone = '91' + phone;\n\n  const photos = pick('property photos', 'photo', 'image', 'picture');\n  const ids = [...photos.matchAll(/(?:[?&]id=|\\/d\\/)([-\\w]{20,})/g)].map(m => m[1]);\n  if (!ids.length && /^[a-zA-Z0-9_-]{20,}$/.test(photos)) ids.push(photos);\n  const uniqueIds = [...new Set(ids)];\n\n  const locality = pick('locality', 'neighbourhood', 'neighborhood');\n  const address = pick('full address', 'address');\n  const areaMatch = pick('area (sq ft)', 'carpet area', 'built up area', 'sq ft', 'sqft', 'area').replace(/,/g, '').match(/\\d+(?:\\.\\d+)?/);\n  const bhkMatch = pick('bhk', 'bedroom').match(/\\d+/);\n\n  out.push({ json: {\n    listing_id: 'VUL-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).slice(2, 6).toUpperCase(),\n    broker_name: pick('broker name', 'your name'),\n    broker_phone: phone,\n    title,\n    property_type: pick('property type', 'type').toLowerCase(),\n    bhk: bhkMatch ? Number(bhkMatch[0]) : null,\n    locality,\n    address,\n    price_inr: parsePrice(pick('price')),\n    area_sqft: areaMatch ? Number(areaMatch[0]) : null,\n    furnishing: pick('furnishing').toLowerCase(),\n    description: pick('description', 'details'),\n    drive_file_ids: uniqueIds.join(','),\n    primary_photo_id: uniqueIds[0] || '',\n    image_url: uniqueIds[0] ? 'https://drive.google.com/thumbnail?id=' + uniqueIds[0] + '&sz=w1600' : '',\n    address_query: [address, locality, city].filter(Boolean).join(', ')\n  } });\n}\nreturn out;"
+      },
+      "id": "2e46257e-fef5-484a-91ce-15db6f2f98e1",
+      "name": "Normalize Listing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "36802bb8-6415-56ce-ac21-f0a4c3a7d2fe",
+              "leftValue": "={{ $json.primary_photo_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e5a50c1d-ce31-4472-9ee5-4300e00efbcf",
+      "name": "Has Photo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.primary_photo_id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "id": "9a24df3d-bf2e-4f94-bcd1-522491b4ef80",
+      "name": "Make Photo Public",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        880,
+        -128
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleDriveOAuth2Api credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const listings = $input.all();\n\nreturn listings.map(item => {\n  const L = item.json;\n\n  return {\n    json: {\n      listing_id: L.listing_id,\n      status: 'Available',\n      title: L.title,\n      property_type: L.property_type,\n      bhk: L.bhk,\n      locality: L.locality,\n      address: L.address,\n      lat: '',\n      lng: '',\n      price_inr: L.price_inr,\n      area_sqft: L.area_sqft,\n      furnishing: L.furnishing,\n      description: L.description,\n      image_url: L.image_url,\n      drive_file_ids: L.drive_file_ids,\n      broker_name: L.broker_name,\n      broker_phone: L.broker_phone,\n      maps_link: '',\n      created_at: $now\n        .setZone('Asia/Kolkata')\n        .toFormat('yyyy-MM-dd HH:mm:ss')\n    }\n  };\n});"
+      },
+      "id": "9b2e06be-760d-48fa-a971-0fcce933817d",
+      "name": "Build Property Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<PROPERTIES_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Properties",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/<PROPERTIES_SHEET_ID>/edit#gid=0",
+          "__regex": "https:\\/\\/docs\\.google\\.com\\/spreadsheets\\/d\\/[0-9a-zA-Z\\-_]+.*\\#gid=([0-9]+)"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Property id",
+              "displayName": "Property id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Area",
+              "displayName": "Area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Micro_area",
+              "displayName": "Micro_area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "PropertyType",
+              "displayName": "PropertyType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "BHK",
+              "displayName": "BHK",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Price",
+              "displayName": "Price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Carpet area",
+              "displayName": "Carpet area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "possession_status",
+              "displayName": "possession_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "builder",
+              "displayName": "builder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "parking",
+              "displayName": "parking",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amenities",
+              "displayName": "amenities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "landmarks",
+              "displayName": "landmarks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "latitude",
+              "displayName": "latitude",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "longitude",
+              "displayName": "longitude",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "maps_link",
+              "displayName": "maps_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_urls",
+              "displayName": "image_urls",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "broker_name",
+              "displayName": "broker_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "broker_contact",
+              "displayName": "broker_contact",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_added",
+              "displayName": "date_added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "availability",
+              "displayName": "availability",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "listing_id",
+              "displayName": "listing_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "property_type",
+              "displayName": "property_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bhk",
+              "displayName": "bhk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lat",
+              "displayName": "lat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lng",
+              "displayName": "lng",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "price_inr",
+              "displayName": "price_inr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "area_sqft",
+              "displayName": "area_sqft",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "furnishing",
+              "displayName": "furnishing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "drive_file_ids",
+              "displayName": "drive_file_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "broker_phone",
+              "displayName": "broker_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "bb7d05b8-fc29-4340-bd51-cf9a97252b1e",
+      "name": "Save Property",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        64
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Config (Broker)').first().json.wa_phone_number_id }}",
+        "recipientPhoneNumber": "={{ $json.broker_phone }}",
+        "textBody": "=✅ Your listing is live on Vulturus!\n\n*Listing ID:* {{ $json.listing_id }}\n*Property:* {{ $json.title }}\n*Location:* {{ $json.locality }}\n*Type:* {{ $json.property_type }}\n*BHK:* {{ $json.bhk || '-' }}\n*Price:* {{ $json.price_inr ? '₹' + Number($json.price_inr).toLocaleString('en-IN') : 'On request' }}\n\nBuyers on WhatsApp can now discover your property. We will notify you when a site visit is booked.\n\nThank you for listing with Vulturus! 🏡",
+        "additionalFields": {}
+      },
+      "id": "46d50802-58ae-47e5-b8a7-a5fb173dd6d1",
+      "name": "Notify Broker (Listing Live)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        64
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise Properties-sheet rows into the bot's Data Table format.\nconst toNum = v => { const n = Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return Number.isFinite(n) && n > 0 ? n : null; };\nconst s = v => String(v == null ? '' : v).trim();\nconst score = r => ['title','property_type','bhk','locality','address','price_inr','area_sqft','furnishing','image_url'].filter(k => s(r[k])).length;\nconst best = new Map();\nfor (const item of $input.all()) {\n  const r = item.json;\n  const id = s(r.listing_id).toUpperCase();\n  if (!id) continue;\n  const prev = best.get(id);\n  if (!prev || score(r) > score(prev)) best.set(id, r);\n}\nreturn [...best.entries()].map(([id, r]) => ({ json: {\n  listing_id: id,\n  status: s(r.status || r.availability).toLowerCase(),\n  title: s(r.title),\n  property_type: s(r.property_type || r.PropertyType).toLowerCase(),\n  bhk: toNum(r.bhk || r.BHK),\n  locality: s(r.locality || r.Area),\n  address: s(r.address),\n  price_inr: toNum(r.price_inr || r.Price),\n  area_sqft: toNum(r.area_sqft || r['Carpet area']),\n  furnishing: s(r.furnishing).toLowerCase(),\n  image_url: s(r.image_url),\n  broker_name: s(r.broker_name),\n  broker_phone: s(r.broker_phone || r.broker_contact).replace(/\\D/g, ''),\n  description: s(r.description).slice(0, 500)\n} }));"
+      },
+      "id": "2c01d8e8-47a1-4139-a3c1-dba66bb75633",
+      "name": "Clean Listing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<PROPERTIES_DATA_TABLE_ID>"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "listing_id",
+              "keyValue": "={{ $json.listing_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f984ea6a-a720-426a-87c0-1b595634edab",
+      "name": "Upsert Listing (Data Table)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<PROPERTIES_SHEET_ID>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "2c3bafbf-d816-44e5-8367-607170fdcb8e",
+      "name": "Properties Sheet Changed",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        464
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsTriggerOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise Properties-sheet rows into the bot's Data Table format.\nconst toNum = v => { const n = Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return Number.isFinite(n) && n > 0 ? n : null; };\nconst s = v => String(v == null ? '' : v).trim();\nconst score = r => ['title','property_type','bhk','locality','address','price_inr','area_sqft','furnishing','image_url'].filter(k => s(r[k])).length;\nconst best = new Map();\nfor (const item of $input.all()) {\n  const r = item.json;\n  const id = s(r.listing_id).toUpperCase();\n  if (!id) continue;\n  const prev = best.get(id);\n  if (!prev || score(r) > score(prev)) best.set(id, r);\n}\nreturn [...best.entries()].map(([id, r]) => ({ json: {\n  listing_id: id,\n  status: s(r.status || r.availability).toLowerCase(),\n  title: s(r.title),\n  property_type: s(r.property_type || r.PropertyType).toLowerCase(),\n  bhk: toNum(r.bhk || r.BHK),\n  locality: s(r.locality || r.Area),\n  address: s(r.address),\n  price_inr: toNum(r.price_inr || r.Price),\n  area_sqft: toNum(r.area_sqft || r['Carpet area']),\n  furnishing: s(r.furnishing).toLowerCase(),\n  image_url: s(r.image_url),\n  broker_name: s(r.broker_name),\n  broker_phone: s(r.broker_phone || r.broker_contact).replace(/\\D/g, ''),\n  description: s(r.description).slice(0, 500)\n} }));"
+      },
+      "id": "394ec9ac-6367-4b5a-8574-f66839da6078",
+      "name": "Clean Changed Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<PROPERTIES_DATA_TABLE_ID>"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "listing_id",
+              "keyValue": "={{ $json.listing_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "listing_id",
+              "displayName": "listing_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "property_type",
+              "displayName": "property_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bhk",
+              "displayName": "bhk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "locality",
+              "displayName": "locality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "price_inr",
+              "displayName": "price_inr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "area_sqft",
+              "displayName": "area_sqft",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "furnishing",
+              "displayName": "furnishing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "broker_name",
+              "displayName": "broker_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "broker_phone",
+              "displayName": "broker_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2771a4e2-9d77-47d6-9b89-bce1f018bef2",
+      "name": "Upsert Changed (Data Table)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        464
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "13bb6a0c-67e1-44ec-8827-44fe998c04f1",
+      "name": "Run Full Import",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<PROPERTIES_SHEET_ID>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "548c3313-f2cb-4275-b080-f84e1e0a064c",
+      "name": "Read Properties Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        688
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise Properties-sheet rows into the bot's Data Table format.\nconst toNum = v => { const n = Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return Number.isFinite(n) && n > 0 ? n : null; };\nconst s = v => String(v == null ? '' : v).trim();\nconst score = r => ['title','property_type','bhk','locality','address','price_inr','area_sqft','furnishing','image_url'].filter(k => s(r[k])).length;\nconst best = new Map();\nfor (const item of $input.all()) {\n  const r = item.json;\n  const id = s(r.listing_id).toUpperCase();\n  if (!id) continue;\n  const prev = best.get(id);\n  if (!prev || score(r) > score(prev)) best.set(id, r);\n}\nreturn [...best.entries()].map(([id, r]) => ({ json: {\n  listing_id: id,\n  status: s(r.status || r.availability).toLowerCase(),\n  title: s(r.title),\n  property_type: s(r.property_type || r.PropertyType).toLowerCase(),\n  bhk: toNum(r.bhk || r.BHK),\n  locality: s(r.locality || r.Area),\n  address: s(r.address),\n  price_inr: toNum(r.price_inr || r.Price),\n  area_sqft: toNum(r.area_sqft || r['Carpet area']),\n  furnishing: s(r.furnishing).toLowerCase(),\n  image_url: s(r.image_url),\n  broker_name: s(r.broker_name),\n  broker_phone: s(r.broker_phone || r.broker_contact).replace(/\\D/g, ''),\n  description: s(r.description).slice(0, 500)\n} }));"
+      },
+      "id": "80a502f4-f32d-49f2-9527-b2ed13336aa6",
+      "name": "Clean All Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<PROPERTIES_DATA_TABLE_ID>"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "listing_id",
+              "keyValue": "={{ $json.listing_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "3e673598-e6d5-4879-907c-dbd06de34712",
+      "name": "Upsert All (Data Table)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Vulturus v2 – Listings & sync\n**Top:** broker Google Form → Properties sheet + bot Data Table → WhatsApp broker.\n**Middle:** any edit in the Properties sheet (e.g. status → Sold) is copied to the bot's Data Table within ~1 min.\n**Bottom:** click *Run Full Import* to re-copy the whole sheet.\nThe WhatsApp bot reads ONLY the `vulturus_properties` Data Table (fast).",
+        "height": 200,
+        "width": 620
+      },
+      "id": "1e4ab1c4-3a5b-4add-9cf4-0f350b843305",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -304
+      ]
+    }
+  ],
+  "connections": {
+    "Form Response Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config (Broker)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config (Broker)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Listing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Listing": {
+      "main": [
+        [
+          {
+            "node": "Has Photo?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Property Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Photo?": {
+      "main": [
+        [
+          {
+            "node": "Make Photo Public",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Property Row": {
+      "main": [
+        [
+          {
+            "node": "Save Property",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clean Listing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Property": {
+      "main": [
+        [
+          {
+            "node": "Notify Broker (Listing Live)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Listing": {
+      "main": [
+        [
+          {
+            "node": "Upsert Listing (Data Table)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Properties Sheet Changed": {
+      "main": [
+        [
+          {
+            "node": "Clean Changed Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Changed Rows": {
+      "main": [
+        [
+          {
+            "node": "Upsert Changed (Data Table)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Full Import": {
+      "main": [
+        [
+          {
+            "node": "Read Properties Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Properties Sheet": {
+      "main": [
+        [
+          {
+            "node": "Clean All Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean All Rows": {
+      "main": [
+        [
+          {
+            "node": "Upsert All (Data Table)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}

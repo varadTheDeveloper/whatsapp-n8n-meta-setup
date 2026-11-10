@@ -1,0 +1,1478 @@
+{
+  "name": "Vulturus v2 – WhatsApp bot (fast)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "211e264b-aa8a-4e43-8db6-02c0ae0051d5",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppTriggerApi credential>"
+        }
+      }
+    },
+    {
+      "id": "e12820b8-d20e-4216-b43d-613667263006",
+      "name": "Is Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8c67d2cf-cdbf-4857-a41a-e026e54b2256",
+              "leftValue": "={{ $json.messages?.[0]?.type ?? '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "text"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "74933e81-44fe-4b7b-b45b-7f6bf566e0fb",
+      "name": "Is Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "773d4ecd-149a-41aa-be69-2615b359147e",
+              "leftValue": "={{ $json.messages?.[0]?.id ?? '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6ba69320-79ca-4ea3-934c-2404eabc39c6",
+      "name": "Send Unsupported",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        220
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $json.metadata.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $json.messages[0].from }}",
+        "textBody": "Hi! I can only read text messages right now 🙏 Please type what you're looking for, e.g. 2 BHK in Baner under 90 lakh.\nअभी मैं सिर्फ़ टेक्स्ट मैसेज पढ़ सकता हूँ, कृपया टाइप करके भेजें।",
+        "additionalFields": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ca2f5bef-c1c2-43b0-8753-7766f1ba005a",
+      "name": "Typing…",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.metadata.phone_number_id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: $json.messages[0].id, typing_indicator: { type: 'text' } }) }}",
+        "options": {
+          "timeout": 4000
+        }
+      }
+    },
+    {
+      "id": "fc2debde-e5a8-4e06-8c95-6586a883df3b",
+      "name": "Get Session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<SESSIONS_DATA_TABLE_ID>"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $('WhatsApp Trigger').first().json.messages[0].from }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      }
+    },
+    {
+      "id": "7bfd01de-d1a5-4e05-8183-a581a1270432",
+      "name": "New Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ce2c1f12-41b2-44fa-a051-0507b440458b",
+              "leftValue": "={{ $json.last_message_id ?? '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              },
+              "rightValue": "={{ $('WhatsApp Trigger').first().json.messages[0].id }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c6b29b73-4e61-4073-bf84-085a8b29cb1c",
+      "name": "Understand Message (AI)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1100,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 500,
+      "parameters": {
+        "promptType": "define",
+        "text": "=TODAY (IST): {{ $now.setZone('Asia/Kolkata').toFormat('cccc, yyyy-MM-dd HH:mm') }}\nSAVED STATE: name={{ $('Get Session').first().json.customer_name || '?' }}; budget={{ $('Get Session').first().json.budget_min || 0 }}-{{ $('Get Session').first().json.budget_max || 0 }} INR; bhk={{ $('Get Session').first().json.bhk || '?' }}; area={{ $('Get Session').first().json.locality || '?' }} (nearby ok: {{ $('Get Session').first().json.locality_flexible ? 'yes' : 'not said' }}); type={{ $('Get Session').first().json.property_type || '?' }}; furnishing={{ $('Get Session').first().json.furnishing || '?' }}; selected={{ $('Get Session').first().json.selected_id || 'none' }}; booking={{ $('Get Session').first().json.booking_status || 'none' }}; visit={{ $('Get Session').first().json.meeting_date || '?' }} {{ $('Get Session').first().json.meeting_time || '' }}\nSHOWN PROPERTIES (number|id|title): {{ ($('Get Session').first().json.shown || 'none').split(';').join(' ; ') }}\nRECENT CHAT: {{ ($('Get Session').first().json.history || 'none').split(' ## ').join(' / ') }}\nLATEST MESSAGE: {{ $('WhatsApp Trigger').first().json.messages[0].text.body }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are the language engine of Vulturus, a WhatsApp home-buying assistant for Pune, India. Read the LATEST MESSAGE with the saved state and recent chat, and return the structured fields.\n\nintent (exactly one):\n- property_search: wants to find/browse/compare properties, or changes ANY search criteria (even one word like \"Baner\", \"3 BHK\", \"50 lakh\").\n- book_visit: wants a site visit, picks a listing from SHOWN PROPERTIES (e.g. \"1\", \"the second one\", \"VUL-...\"), or gives date/time/name while booking is in_progress.\n- general_chat: greetings, thanks, questions about buying, Pune areas, the service, or anything else.\n\nFields — use only what the customer said or clearly implied; \"\" or 0 when unknown:\n- lang: en | hi (Hindi in Devanagari) | mr (Marathi) | hinglish (Hindi in Roman letters) — match the latest message.\n- budget_min / budget_max in INR (80 lakh = 8000000, 1.2 crore = 12000000). \"under X\" sets budget_max only.\n- bhk: 1-5 (1RK = 1). locality: Pune area, spelled correctly; \"Pune\" or \"anywhere\" = \"Pune\".\n- property_type: apartment | villa | plot | commercial | \"\". furnishing: unfurnished | semi-furnished | furnished | \"\".\n- locality_flexible: \"yes\" if they accept nearby areas, \"no\" if only that area, else \"\".\n- reset: true only if they ask to start over / forget previous criteria.\n- pick: the number they chose from SHOWN PROPERTIES, else 0. listing_id: a VUL-... id if written, else \"\".\n- meeting_date: YYYY-MM-DD resolved from TODAY (\"tomorrow\", \"Saturday\"). meeting_time: HH:mm 24h (\"5pm\" = 17:00; vague like \"evening\" = \"\").\n- name: their name only if they state it.\n- reply: ONLY when intent is general_chat — a warm, short WhatsApp reply in lang (max 450 characters, plain text, *bold* sparingly, 1-2 emojis). Speak generally about buying a home or Pune areas; no legal/tax/investment guarantees; never invent listings, prices or availability; never include phone numbers; never say a visit is booked or confirmed. If budget, BHK or area are unknown, end by asking for them. For other intents reply = \"\"."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "2ab75695-3161-45be-ad1e-a840b3f97e5f",
+      "name": "OpenAI (gpt-4.1-mini)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your openAiApi credential>"
+        }
+      },
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "responsesApiEnabled": true,
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 700,
+          "timeout": 20000,
+          "maxRetries": 1
+        }
+      }
+    },
+    {
+      "id": "a1b31817-96d3-4414-b638-7a6aa02ee90a",
+      "name": "AI Output Format",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1260,
+        240
+      ],
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n \"type\": \"object\",\n \"properties\": {\n  \"intent\": {\n   \"type\": \"string\",\n   \"enum\": [\n    \"property_search\",\n    \"book_visit\",\n    \"general_chat\"\n   ]\n  },\n  \"lang\": {\n   \"type\": \"string\",\n   \"enum\": [\n    \"en\",\n    \"hi\",\n    \"mr\",\n    \"hinglish\"\n   ]\n  },\n  \"budget_min\": {\n   \"type\": \"number\"\n  },\n  \"budget_max\": {\n   \"type\": \"number\"\n  },\n  \"bhk\": {\n   \"type\": \"number\"\n  },\n  \"locality\": {\n   \"type\": \"string\"\n  },\n  \"property_type\": {\n   \"type\": \"string\"\n  },\n  \"furnishing\": {\n   \"type\": \"string\"\n  },\n  \"locality_flexible\": {\n   \"type\": \"string\",\n   \"enum\": [\n    \"yes\",\n    \"no\",\n    \"\"\n   ]\n  },\n  \"reset\": {\n   \"type\": \"boolean\"\n  },\n  \"pick\": {\n   \"type\": \"number\"\n  },\n  \"listing_id\": {\n   \"type\": \"string\"\n  },\n  \"meeting_date\": {\n   \"type\": \"string\"\n  },\n  \"meeting_time\": {\n   \"type\": \"string\"\n  },\n  \"name\": {\n   \"type\": \"string\"\n  },\n  \"reply\": {\n   \"type\": \"string\"\n  }\n },\n \"required\": [\n  \"intent\",\n  \"lang\",\n  \"budget_min\",\n  \"budget_max\",\n  \"bhk\",\n  \"locality\",\n  \"property_type\",\n  \"furnishing\",\n  \"locality_flexible\",\n  \"reset\",\n  \"pick\",\n  \"listing_id\",\n  \"meeting_date\",\n  \"meeting_time\",\n  \"name\",\n  \"reply\"\n ]\n}"
+      }
+    },
+    {
+      "id": "fdb64f7b-debe-4044-a73c-7660e249ebb4",
+      "name": "Get Properties",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1400,
+        0
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<PROPERTIES_DATA_TABLE_ID>"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "available"
+            }
+          ]
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "bc6ab6ef-605f-49a8-8cf8-760f08100bd7",
+      "name": "Brain",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "jsCode": "// Vulturus v2 – Brain: decides the reply with code (no AI) and builds the new session.\nconst OPEN = 10, CLOSE = 19, VISIT_MIN = 30;\n\nconst trig = $('WhatsApp Trigger').first().json;\nconst msg = (trig.messages || [])[0] || {};\nconst contact = (trig.contacts || [])[0] || {};\nconst phone = String(msg.from || '');\nconst text = String((msg.text && msg.text.body) || '').trim();\nconst waName = (contact.profile && contact.profile.name) || '';\nconst row = $('Get Session').first().json || {};\nconst ai = ($('Understand Message (AI)').first().json || {}).output || {};\nconst all = $input.all().map(i => i.json).filter(r => r && r.listing_id);\n\n// ---------- helpers ----------\nconst str = v => String(v == null ? '' : v).trim();\nconst num = v => { const n = Number(String(v == null ? '' : v).replace(/[^0-9.]/g, '')); return Number.isFinite(n) && n > 0 ? n : 0; };\nconst clean = v => str(v).replace(/[;|\\n]/g, ',');\nconst norm = v => str(v).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst clip = (t, n) => str(t).replace(/\\s+/g, ' ').slice(0, n);\nconst fmtPrice = p => !p ? '' : p >= 1e7 ? '₹' + (p / 1e7).toFixed(2).replace(/\\.?0+$/, '') + ' Cr' : p >= 1e5 ? '₹' + (p / 1e5).toFixed(1).replace(/\\.0$/, '') + ' L' : '₹' + p.toLocaleString('en-IN');\nconst hhmm = mins => String(Math.floor(mins / 60) % 24).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');\nconst hourLabel = h => ((h % 12) || 12) + (h >= 12 ? ' PM' : ' AM');\nconst timeLabel = t => { const p = t.split(':').map(Number); return ((p[0] % 12) || 12) + ':' + String(p[1]).padStart(2, '0') + (p[0] >= 12 ? ' PM' : ' AM'); };\n\n// ---------- session state ----------\nconst st = {\n  phone,\n  customer_name: str(row.customer_name),\n  lang: str(row.lang) || 'en',\n  last_intent: str(row.last_intent),\n  budget_min: num(row.budget_min),\n  budget_max: num(row.budget_max),\n  bhk: num(row.bhk),\n  locality: str(row.locality),\n  locality_flexible: row.locality_flexible === true || String(row.locality_flexible) === 'true',\n  property_type: str(row.property_type),\n  furnishing: str(row.furnishing),\n  shown: str(row.shown),\n  selected_id: str(row.selected_id),\n  meeting_date: str(row.meeting_date),\n  meeting_time: str(row.meeting_time),\n  booking_status: str(row.booking_status),\n  history: str(row.history),\n  last_message_id: str(msg.id)\n};\n\n// ---------- apply what the AI understood ----------\nif (['en', 'hi', 'mr', 'hinglish'].includes(ai.lang)) st.lang = ai.lang;\nconst lang = st.lang;\nif (ai.reset === true) Object.assign(st, { budget_min: 0, budget_max: 0, bhk: 0, locality: '', locality_flexible: false, property_type: '', furnishing: '', shown: '', selected_id: '' });\n['locality', 'property_type', 'furnishing'].forEach(k => { const v = str(ai[k]); if (v) st[k] = v; });\n['budget_min', 'budget_max', 'bhk'].forEach(k => { const v = num(ai[k]); if (v) st[k] = v; });\nif (st.budget_min && st.budget_max && st.budget_min > st.budget_max) st.budget_min = 0;\nif (ai.locality_flexible === 'yes') st.locality_flexible = true;\nelse if (ai.locality_flexible === 'no') st.locality_flexible = false;\nif (str(ai.name)) st.customer_name = str(ai.name);\nif (!st.customer_name) st.customer_name = waName;\nif (/^\\d{4}-\\d{2}-\\d{2}$/.test(str(ai.meeting_date))) st.meeting_date = str(ai.meeting_date);\nconst tm = str(ai.meeting_time).match(/^(\\d{1,2}):(\\d{2})$/);\nif (tm) st.meeting_time = tm[1].padStart(2, '0') + ':' + tm[2];\n\nconst shownList = st.shown.split(';').filter(Boolean).map(x => { const p = x.split('|'); return { n: Number(p[0]), id: p[1], title: p[2] }; });\nconst typedId = (text.match(/\\bVUL-[A-Z0-9]{4,12}\\b/i) || [])[0];\nconst pickN = num(ai.pick);\nconst picked = shownList.find(x => x.n === pickN);\nif (typedId) st.selected_id = typedId.toUpperCase();\nelse if (picked) st.selected_id = picked.id;\nelse if (/^VUL-/i.test(str(ai.listing_id))) st.selected_id = str(ai.listing_id).toUpperCase();\n\nconst intent = ['property_search', 'book_visit', 'general_chat'].includes(ai.intent) ? ai.intent : 'general_chat';\nst.last_intent = intent;\n\n// ---------- reply templates (en / hi / mr / hinglish) ----------\nconst T = {\n  en: {\n    ask_criteria: 'Happy to help you find a home in Pune! 🏡 Tell me your *budget*, *BHK* and *preferred area*, e.g. \"2 BHK in Baner under 90 lakh\".',\n    head_exact: '🏡 Options for *{crit}*:',\n    head_nearby: 'Nothing in {loc} right now, but these are nearby 📍',\n    head_closest: 'No exact match for *{crit}*, but these are close:',\n    footer: 'Reply with the number (e.g. *1*) to book a free site visit.',\n    none: 'Sorry, nothing matches *{crit}* right now. Want to change the budget, BHK or area?',\n    none_nearby: 'Sorry, nothing in {loc} matches *{crit}* right now. Are nearby areas like {near} okay?',\n    book_which: 'Which property would you like to visit? Reply with its number from the list (e.g. *1*).',\n    book_need_search: 'Sure! First tell me what you are looking for (budget, BHK, area) and I will show you options to visit.',\n    book_unavailable: 'Sorry, *{title}* is no longer available. Want me to show similar options?',\n    book_ask: 'Great choice: *{title}* ({loc}) 👍\\nPlease share {missing}. Visits run daily {open} to {close}.',\n    m_date: 'the visit date', m_time: 'a time', m_name: 'your name', and: ' and ',\n    book_past: 'That time has already passed. Please pick a future date and time.',\n    book_hours: 'Visits are possible between {open} and {close}. Please pick a time in that window.',\n    slot_taken: 'Sorry, {date} at {time} is already booked. Could you pick another time between {open} and {close}?',\n    confirmed: '✅ *Site visit confirmed!*\\n\\n🏠 {title}\\n📍 {loc}\\n👤 {name}\\n📅 {date}\\n⏰ {time}\\n\\n{broker_line}Reply here to reschedule or to see more options.',\n    broker_line: 'Our broker {broker} will meet you there.\\n',\n    pune: 'Pune'\n  },\n  hi: {\n    ask_criteria: 'पुणे में घर ढूँढने में खुशी से मदद करूँगा! 🏡 अपना *बजट*, *BHK* और *पसंदीदा इलाका* बताइए, जैसे \"बानेर में 2 BHK, 90 लाख तक\"।',\n    head_exact: '🏡 *{crit}* के लिए विकल्प:',\n    head_nearby: '{loc} में अभी कुछ नहीं है, पर ये पास के इलाकों में हैं 📍',\n    head_closest: '*{crit}* का बिल्कुल सही मैच नहीं मिला, पर ये करीब हैं:',\n    footer: 'फ्री साइट विज़िट बुक करने के लिए नंबर भेजिए (जैसे *1*)।',\n    none: 'माफ़ कीजिए, *{crit}* के लिए अभी कुछ नहीं मिला। बजट, BHK या इलाका बदलें?',\n    none_nearby: 'माफ़ कीजिए, {loc} में *{crit}* के लिए अभी कुछ नहीं है। क्या {near} जैसे पास के इलाके चलेंगे?',\n    book_which: 'आप कौन-सी प्रॉपर्टी देखना चाहेंगे? लिस्ट से उसका नंबर भेजिए (जैसे *1*)।',\n    book_need_search: 'ज़रूर! पहले बताइए आप क्या ढूँढ रहे हैं (बजट, BHK, इलाका), फिर मैं विज़िट के लिए विकल्प दिखाऊँगा।',\n    book_unavailable: 'माफ़ कीजिए, *{title}* अब उपलब्ध नहीं है। क्या मैं मिलते-जुलते विकल्प दिखाऊँ?',\n    book_ask: 'बढ़िया पसंद: *{title}* ({loc}) 👍\\nकृपया {missing} बताइए। विज़िट रोज़ {open} से {close} के बीच होती हैं।',\n    m_date: 'विज़िट की तारीख', m_time: 'समय', m_name: 'आपका नाम', and: ' और ',\n    book_past: 'यह समय निकल चुका है। कृपया आगे की कोई तारीख और समय चुनिए।',\n    book_hours: 'विज़िट {open} से {close} के बीच ही हो सकती है। कृपया इस बीच का समय चुनिए।',\n    slot_taken: 'माफ़ कीजिए, {date} को {time} पहले से बुक है। क्या {open} से {close} के बीच कोई और समय चलेगा?',\n    confirmed: '✅ *साइट विज़िट कन्फर्म!*\\n\\n🏠 {title}\\n📍 {loc}\\n👤 {name}\\n📅 {date}\\n⏰ {time}\\n\\n{broker_line}समय बदलना हो या और विकल्प देखने हों तो यहीं मैसेज करें।',\n    broker_line: 'हमारे ब्रोकर {broker} आपसे वहीं मिलेंगे।\\n',\n    pune: 'पुणे'\n  },\n  mr: {\n    ask_criteria: 'पुण्यात घर शोधायला नक्की मदत करेन! 🏡 तुमचे *बजेट*, *BHK* आणि *आवडता भाग* सांगा, उदा. \"बाणेरमध्ये 2 BHK, 90 लाखांपर्यंत\".',\n    head_exact: '🏡 *{crit}* साठी पर्याय:',\n    head_nearby: '{loc} मध्ये सध्या काही नाही, पण हे जवळच्या भागात आहेत 📍',\n    head_closest: '*{crit}* साठी अचूक जुळणी नाही, पण हे जवळचे पर्याय आहेत:',\n    footer: 'मोफत साइट व्हिजिट बुक करण्यासाठी नंबर पाठवा (उदा. *1*).',\n    none: 'माफ करा, *{crit}* साठी सध्या काही नाही. बजेट, BHK किंवा भाग बदलूया का?',\n    none_nearby: 'माफ करा, {loc} मध्ये *{crit}* साठी सध्या काही नाही. {near} सारखे जवळचे भाग चालतील का?',\n    book_which: 'तुम्हाला कोणती प्रॉपर्टी पाहायची आहे? यादीतील नंबर पाठवा (उदा. *1*).',\n    book_need_search: 'नक्की! आधी सांगा तुम्ही काय शोधत आहात (बजेट, BHK, भाग), मग मी व्हिजिटसाठी पर्याय दाखवेन.',\n    book_unavailable: 'माफ करा, *{title}* आता उपलब्ध नाही. सारखे पर्याय दाखवू का?',\n    book_ask: 'छान निवड: *{title}* ({loc}) 👍\\nकृपया {missing} सांगा. व्हिजिट रोज {open} ते {close} दरम्यान होतात.',\n    m_date: 'भेटीची तारीख', m_time: 'वेळ', m_name: 'तुमचे नाव', and: ' आणि ',\n    book_past: 'ही वेळ आधीच गेली आहे. कृपया पुढची तारीख आणि वेळ निवडा.',\n    book_hours: 'व्हिजिट फक्त {open} ते {close} दरम्यान होऊ शकते. कृपया त्या वेळेत वेळ निवडा.',\n    slot_taken: 'माफ करा, {date} रोजी {time} आधीच बुक आहे. {open} ते {close} दरम्यान दुसरी वेळ चालेल का?',\n    confirmed: '✅ *साइट व्हिजिट निश्चित!*\\n\\n🏠 {title}\\n📍 {loc}\\n👤 {name}\\n📅 {date}\\n⏰ {time}\\n\\n{broker_line}वेळ बदलायची असेल किंवा आणखी पर्याय हवे असतील तर इथेच मेसेज करा.',\n    broker_line: 'आमचे ब्रोकर {broker} तुम्हाला तिथे भेटतील.\\n',\n    pune: 'पुणे'\n  },\n  hinglish: {\n    ask_criteria: 'Pune mein ghar dhoondhne mein zaroor help karunga! 🏡 Apna *budget*, *BHK* aur *preferred area* batayein, jaise \"Baner mein 2 BHK, 90 lakh tak\".',\n    head_exact: '🏡 *{crit}* ke liye options:',\n    head_nearby: '{loc} mein abhi kuch nahi hai, par ye paas ke areas mein hain 📍',\n    head_closest: '*{crit}* ka exact match nahi mila, par ye close options hain:',\n    footer: 'Free site visit book karne ke liye number bhejiye (jaise *1*).',\n    none: 'Sorry, *{crit}* ke liye abhi kuch nahi mila. Budget, BHK ya area change karein?',\n    none_nearby: 'Sorry, {loc} mein *{crit}* ke liye abhi kuch nahi hai. Kya {near} jaise paas ke areas chalenge?',\n    book_which: 'Aap kaunsi property dekhna chahenge? List se uska number bhejiye (jaise *1*).',\n    book_need_search: 'Zaroor! Pehle bataiye aap kya dhoondh rahe hain (budget, BHK, area), phir main visit ke liye options dikhata hoon.',\n    book_unavailable: 'Sorry, *{title}* ab available nahi hai. Kya main similar options dikhaun?',\n    book_ask: 'Badhiya choice: *{title}* ({loc}) 👍\\nPlease {missing} batayein. Visits roz {open} se {close} ke beech hoti hain.',\n    m_date: 'visit ki date', m_time: 'time', m_name: 'aapka naam', and: ' aur ',\n    book_past: 'Ye time nikal chuka hai. Please aage ki koi date aur time choose karein.',\n    book_hours: 'Visits sirf {open} se {close} ke beech ho sakti hain. Please is beech ka time choose karein.',\n    slot_taken: 'Sorry, {date} ko {time} pehle se booked hai. Kya {open} se {close} ke beech koi aur time chalega?',\n    confirmed: '✅ *Site visit confirmed!*\\n\\n🏠 {title}\\n📍 {loc}\\n👤 {name}\\n📅 {date}\\n⏰ {time}\\n\\n{broker_line}Time change karna ho ya aur options dekhne hon to yahin message karein.',\n    broker_line: 'Hamare broker {broker} aapse wahin milenge.\\n',\n    pune: 'Pune'\n  }\n};\nconst L = T[lang] || T.en;\nconst fill = (key, vars) => { let s = L[key] || T.en[key]; for (const k in (vars || {})) s = s.split('{' + k + '}').join(String(vars[k])); return s; };\nconst OPEN_L = hourLabel(OPEN), CLOSE_L = hourLabel(CLOSE);\nconst LOCALE = { en: 'en-IN', hinglish: 'en-IN', hi: 'hi-IN', mr: 'mr-IN' };\nconst dateLabel = d => new Date(d + 'T00:00:00Z').toLocaleDateString(LOCALE[lang] || 'en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });\n\n// ---------- Pune search ----------\nconst CITY_WIDE = ['pune', 'pune city', 'any', 'anywhere', 'all', 'all pune', 'whole pune', 'anywhere in pune'];\nconst ALIASES = { 'hinjawadi': 'hinjewadi', 'vimannagar': 'viman nagar', 'kalyaninagar': 'kalyani nagar', 'kp': 'koregaon park', 'karvenagar': 'karve nagar', 'pimplesaudagar': 'pimple saudagar', 'pimple saudagaar': 'pimple saudagar', 'magarpatta city': 'magarpatta', 'baner road': 'baner', 'balewadi high street': 'balewadi', 'kharadi bypass': 'kharadi', 'wadgaonsheri': 'wadgaon sheri', 'shivajinagar': 'shivaji nagar', 'kothrud depot': 'kothrud' };\nconst NEARBY = {\n  'baner': ['balewadi', 'aundh', 'pashan', 'sus', 'mahalunge', 'bavdhan'],\n  'balewadi': ['baner', 'mahalunge', 'aundh', 'wakad'],\n  'aundh': ['baner', 'pashan', 'bopodi', 'sangvi', 'balewadi'],\n  'wakad': ['tathawade', 'punawale', 'ravet', 'thergaon', 'hinjewadi', 'pimple saudagar', 'pimple nilakh'],\n  'hinjewadi': ['wakad', 'maan', 'marunji', 'tathawade', 'punawale'],\n  'kothrud': ['karve nagar', 'warje', 'erandwane', 'bavdhan'],\n  'kharadi': ['viman nagar', 'wagholi', 'chandan nagar', 'mundhwa', 'wadgaon sheri'],\n  'viman nagar': ['kalyani nagar', 'kharadi', 'lohegaon', 'yerawada', 'wadgaon sheri'],\n  'hadapsar': ['magarpatta', 'mundhwa', 'amanora', 'fursungi', 'wanowrie'],\n  'pimple saudagar': ['pimple nilakh', 'wakad', 'rahatani', 'pimple gurav']\n};\nconst canonLoc = v => { let n = ' ' + norm(v).replace(/ pune$/, '').replace(/\\bphase \\d+\\b/g, ' ').replace(/\\s+/g, ' ').trim() + ' '; for (const k in ALIASES) n = n.split(' ' + k + ' ').join(' ' + ALIASES[k] + ' '); return n.trim(); };\nconst locMatches = (l, w) => { const c = canonLoc(l); return !!c && (c === w || (' ' + c + ' ').includes(' ' + w + ' ')); };\nconst canonFurn = v => { const n = norm(v); if (!n) return ''; if (n.includes('unfurnish') || /^un /.test(n) || n === 'bare') return 'unfurnished'; if (n.includes('semi')) return 'semi-furnished'; if (n.includes('furnish')) return 'furnished'; return n; };\nconst canonType = v => { const n = norm(v); if (!n) return ''; if (/flat|apartment|apt/.test(n)) return 'apartment'; if (/villa|bungalow|row ?house|independent house/.test(n)) return 'villa'; if (/plot|land/.test(n)) return 'plot'; if (/commercial|office|shop/.test(n)) return 'commercial'; return n; };\nconst titleCase = s => s.replace(/\\b\\w/g, c => c.toUpperCase());\n\nfunction search() {\n  const available = all.filter(r => {\n    if (norm(r.status) !== 'available' || clean(r.title).length < 3) return false;\n    const t = canonType(r.property_type);\n    if (!t) return false;\n    if ((t === 'apartment' || t === 'villa') && !num(r.bhk)) return false;\n    return true;\n  });\n  const wantedLoc = canonLoc(st.locality);\n  const cityWide = !wantedLoc || CITY_WIDE.includes(wantedLoc);\n  const wantType = canonType(st.property_type), wantFurn = canonFurn(st.furnishing);\n  const wantBhk = st.bhk, minB = st.budget_min, maxB = st.budget_max;\n  const noCriteria = cityWide && !wantBhk && !minB && !maxB && !wantType;\n  const fits = (r, s) => {\n    const bhk = num(r.bhk), price = num(r.price_inr);\n    if (wantType && canonType(r.property_type) !== wantType) return false;\n    if (wantBhk && Math.abs(bhk - wantBhk) > s.bhk) return false;\n    if (maxB && (!price || price > maxB * (1 + s.budget))) return false;\n    if (minB && (!price || price < minB * (1 - s.budget))) return false;\n    if (wantFurn && s.strict && canonFurn(r.furnishing) !== wantFurn) return false;\n    return true;\n  };\n  const EXACT = { bhk: 0, budget: 0, strict: true }, CLOSE_S = { bhk: 1, budget: 0.15, strict: false };\n  const inLoc = cityWide ? available : available.filter(r => locMatches(r.locality, wantedLoc));\n  let matches = inLoc.filter(r => fits(r, EXACT)), type = matches.length ? 'exact' : 'none';\n  if (!matches.length && !cityWide && st.locality_flexible && NEARBY[wantedLoc]) {\n    matches = available.filter(r => NEARBY[wantedLoc].some(n => locMatches(r.locality, n)) && fits(r, EXACT));\n    if (matches.length) type = 'nearby';\n  }\n  const diff = r => {\n    const d = [], bhk = num(r.bhk), price = num(r.price_inr);\n    if (wantBhk && bhk !== wantBhk) d.push(bhk + ' BHK');\n    if (maxB && price > maxB) d.push('+' + Math.round((price / maxB - 1) * 100) + '% budget');\n    if (wantFurn && canonFurn(r.furnishing) !== wantFurn) d.push(str(r.furnishing) || '?');\n    return d.join(' · ');\n  };\n  if (!matches.length) {\n    const close = inLoc.filter(r => fits(r, CLOSE_S));\n    if (close.length) {\n      type = 'closest';\n      const score = r => Math.abs(num(r.bhk) - wantBhk) * 10 + (maxB ? Math.max(0, num(r.price_inr) / maxB - 1) * 100 : 0);\n      matches = close.sort((a, b) => score(a) - score(b));\n    }\n  }\n  if (type === 'exact' || type === 'nearby') matches.sort((a, b) => num(a.price_inr) - num(b.price_inr));\n  const crit = [];\n  if (wantBhk) crit.push(wantBhk + ' BHK');\n  if (wantType) crit.push(wantType);\n  crit.push(cityWide ? L.pune : titleCase(st.locality));\n  if (minB && maxB) crit.push(fmtPrice(minB) + '–' + fmtPrice(maxB));\n  else if (maxB) crit.push('≤ ' + fmtPrice(maxB));\n  else if (minB) crit.push('≥ ' + fmtPrice(minB));\n  if (wantFurn) crit.push(wantFurn);\n  const near = (NEARBY[wantedLoc] || []).slice(0, 3).map(titleCase).join(', ');\n  return { picks: matches.slice(0, 3), type, cityWide, noCriteria, crit: crit.join(' · '), near: cityWide ? '' : near, diff };\n}\n\nconst line = (r, i, type, diff) => {\n  const facts = [fmtPrice(num(r.price_inr)), num(r.area_sqft) ? num(r.area_sqft) + ' sq ft' : '', str(r.furnishing), 'ID ' + r.listing_id].filter(Boolean).join(' · ');\n  const d = type === 'closest' ? diff(r) : '';\n  return i + '. *' + clean(r.title) + '* – ' + (clean(r.locality) || 'Pune') + '\\n   ' + facts + (d ? '\\n   ↳ ' + d : '');\n};\n\n// ---------- decide the reply ----------\nlet reply = '', image_url = '', check_slot = false, start_iso = '', end_iso = '';\nlet reply_confirmed = '', reply_taken = '', session_confirmed = null, session_taken = null, lead = null, historyNote = '';\n\nif (intent === 'property_search') {\n  const res = search();\n  if (res.noCriteria) reply = fill('ask_criteria');\n  else if (!res.picks.length) {\n    reply = res.near && !st.locality_flexible ? fill('none_nearby', { loc: titleCase(st.locality), crit: res.crit, near: res.near }) : fill('none', { crit: res.crit });\n  } else {\n    const head = res.type === 'nearby' ? fill('head_nearby', { loc: titleCase(st.locality) }) : res.type === 'closest' ? fill('head_closest', { crit: res.crit }) : fill('head_exact', { crit: res.crit });\n    reply = head + '\\n\\n' + res.picks.map((r, i) => line(r, i + 1, res.type, res.diff)).join('\\n\\n') + '\\n\\n' + fill('footer');\n    st.shown = res.picks.map((r, i) => (i + 1) + '|' + r.listing_id + '|' + clean(r.title)).join(';');\n    image_url = str(res.picks[0].image_url);\n  }\n} else if (intent === 'book_visit') {\n  if (st.booking_status !== 'in_progress') st.booking_status = 'in_progress';\n  const prop = all.find(r => str(r.listing_id).toUpperCase() === st.selected_id);\n  if (!prop) reply = shownList.length ? fill('book_which') : fill('book_need_search');\n  else {\n    const title = clean(prop.title), loc = clean(prop.locality) || 'Pune';\n    if (norm(prop.status) !== 'available') { reply = fill('book_unavailable', { title }); st.selected_id = ''; }\n    else {\n      const missing = [];\n      if (!st.meeting_date) missing.push(L.m_date);\n      if (!st.meeting_time) missing.push(L.m_time);\n      if (!st.customer_name) missing.push(L.m_name);\n      if (missing.length) reply = fill('book_ask', { title, loc, missing: missing.join(L.and), open: OPEN_L, close: CLOSE_L });\n      else {\n        const p = st.meeting_time.split(':').map(Number);\n        const startMin = p[0] * 60 + p[1], endMin = startMin + VISIT_MIN;\n        const nowIst = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 16);\n        if ((st.meeting_date + 'T' + st.meeting_time) <= nowIst) { reply = fill('book_past'); st.meeting_date = ''; st.meeting_time = ''; }\n        else if (startMin < OPEN * 60 || endMin > CLOSE * 60) { reply = fill('book_hours', { open: OPEN_L, close: CLOSE_L }); st.meeting_time = ''; }\n        else {\n          check_slot = true;\n          start_iso = st.meeting_date + 'T' + st.meeting_time + ':00+05:30';\n          end_iso = st.meeting_date + 'T' + hhmm(endMin) + ':00+05:30';\n          const broker = str(prop.broker_name);\n          const vars = { title, loc, name: st.customer_name, date: dateLabel(st.meeting_date), time: timeLabel(st.meeting_time), open: OPEN_L, close: CLOSE_L, broker_line: broker ? fill('broker_line', { broker }) : '' };\n          reply_confirmed = fill('confirmed', vars);\n          reply_taken = fill('slot_taken', vars);\n          historyNote = 'visit requested ' + st.meeting_date + ' ' + st.meeting_time + ' for ' + prop.listing_id;\n          lead = { customer_name: st.customer_name, phone, listing_id: prop.listing_id, title, locality: loc, address: str(prop.address), broker_name: broker, broker_phone: str(prop.broker_phone).replace(/\\D/g, ''), budget: st.budget_max || '', date_label: dateLabel(st.meeting_date), time_label: timeLabel(st.meeting_time), en_date: new Date(st.meeting_date + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }), en_time: timeLabel(st.meeting_time) };\n          reply = reply_taken;\n        }\n      }\n    }\n  }\n} else {\n  let r = str(ai.reply);\n  const unsafe = /\\+?\\d[\\d\\s-]{8,}\\d/.test(r) || /\\b(confirmed|booked)\\b|कन्फर्म|बुक हो|निश्चित झाली/i.test(r);\n  if (!r || unsafe) r = fill('ask_criteria');\n  reply = r.slice(0, 1200);\n}\n\n// ---------- history + sessions ----------\nconst turns = st.history.split(' ## ').filter(Boolean);\nturns.push('U: ' + clip(text, 140) + ' | A: ' + clip(historyNote || reply, 200));\nst.history = turns.slice(-3).join(' ## ');\nif (check_slot) {\n  session_confirmed = Object.assign({}, st, { booking_status: 'confirmed', meeting_date: '', meeting_time: '' });\n  session_taken = Object.assign({}, st, { meeting_time: '' });\n}\n\nreturn [{ json: {\n  phone, phone_number_id: str(trig.metadata && trig.metadata.phone_number_id), intent, lang,\n  reply, image_url, session: st, confirmed: false,\n  check_slot, start_iso, end_iso, reply_confirmed, reply_taken, session_confirmed, session_taken, lead\n} }];"
+      }
+    },
+    {
+      "id": "95d28fe9-456c-4c49-bb7e-26a06d354e0c",
+      "name": "Check Slot?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "18c8d12c-6026-4365-b740-e93b6016f830",
+              "leftValue": "={{ $json.check_slot }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "39583924-83be-4b4b-a0bb-56f7fc0ad2fe",
+      "name": "Check Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2060,
+        -180
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleCalendarOAuth2Api credential>"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<CALENDAR_ID>",
+          "cachedResultName": "<CALENDAR_ID>"
+        },
+        "timeMin": "={{ $('Brain').first().json.start_iso }}",
+        "timeMax": "={{ $('Brain').first().json.end_iso }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "145353b8-5776-4406-8057-f8c9642f6337",
+      "name": "Slot Free?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2280,
+        -180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dc56bb15-ca04-4d35-a563-677561c1cf9a",
+              "leftValue": "={{ $json.available }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b258c3e4-23c0-45e3-978c-20ef16e79638",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2500,
+        -280
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleCalendarOAuth2Api credential>"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "<CALENDAR_ID>",
+          "cachedResultName": "<CALENDAR_ID>"
+        },
+        "start": "={{ $('Brain').first().json.start_iso }}",
+        "end": "={{ $('Brain').first().json.end_iso }}",
+        "additionalFields": {
+          "summary": "=Site visit: {{ $('Brain').first().json.lead.title }} ({{ $('Brain').first().json.lead.listing_id }})",
+          "description": "=Customer: {{ $('Brain').first().json.lead.customer_name }} (+{{ $('Brain').first().json.lead.phone }})\nBroker: {{ $('Brain').first().json.lead.broker_name }} (+{{ $('Brain').first().json.lead.broker_phone }})\nBooked via Vulturus WhatsApp assistant.",
+          "location": "={{ $('Brain').first().json.lead.address || $('Brain').first().json.lead.locality }}"
+        }
+      }
+    },
+    {
+      "id": "d43c0b77-5462-4f90-8acf-2cc9028dc23f",
+      "name": "Use Confirmed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2720,
+        -280
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "250236e0-0aba-4e20-8401-15b6ad8a36e0",
+              "name": "phone",
+              "value": "={{ $('Brain').first().json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "2a98b827-b6d2-4b6d-a976-a07522b44a43",
+              "name": "phone_number_id",
+              "value": "={{ $('Brain').first().json.phone_number_id }}",
+              "type": "string"
+            },
+            {
+              "id": "ef9167c2-4ab0-4d03-af1f-bc081407e00d",
+              "name": "reply",
+              "value": "={{ $('Brain').first().json.reply_confirmed }}",
+              "type": "string"
+            },
+            {
+              "id": "67ff820b-4139-4fd6-a4b6-7e9929ff4e0f",
+              "name": "image_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ffd0c923-a15a-4017-83c3-481659b29597",
+              "name": "session",
+              "value": "={{ $('Brain').first().json.session_confirmed }}",
+              "type": "object"
+            },
+            {
+              "id": "26e0fa9c-eb15-4a2a-b1c5-c6b3b95a76a5",
+              "name": "confirmed",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c180dc77-5200-4267-86a3-f137db45de47",
+              "name": "lead",
+              "value": "={{ $('Brain').first().json.lead }}",
+              "type": "object"
+            },
+            {
+              "id": "33a17ead-5ef3-48db-a9e8-9fbe0d280b6f",
+              "name": "event_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "b7f97613-0155-495e-882f-84f34f4aed2c",
+              "name": "event_link",
+              "value": "={{ $json.htmlLink }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6ac25264-97dd-4db4-99aa-d9025eeaa6a4",
+      "name": "Use Taken",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2500,
+        -80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a3b5045-373f-43f0-954b-3cc3d0a658c0",
+              "name": "phone",
+              "value": "={{ $('Brain').first().json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "00ab3eb6-7c64-449c-a3e9-a2dc0055ba0b",
+              "name": "phone_number_id",
+              "value": "={{ $('Brain').first().json.phone_number_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1ecb91d8-1a75-4d80-b5f4-d8693d23dcdf",
+              "name": "reply",
+              "value": "={{ $('Brain').first().json.reply_taken }}",
+              "type": "string"
+            },
+            {
+              "id": "2dee2b86-6285-4007-a277-455271b3f5c6",
+              "name": "image_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c4474f14-05b0-42a3-b247-4157ec93a95e",
+              "name": "session",
+              "value": "={{ $('Brain').first().json.session_taken }}",
+              "type": "object"
+            },
+            {
+              "id": "b0165ef3-aed7-402f-9ce6-5d3b5c47255b",
+              "name": "confirmed",
+              "value": "={{ false }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "63f3f99f-dabb-4ee2-b775-9ca3ee26f518",
+      "name": "Outgoing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "936a018f-5e26-44a2-aa75-cec58f3075b3",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        3160,
+        0
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $json.phone }}",
+        "textBody": "={{ $json.reply }}",
+        "additionalFields": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "54c8db2f-cf76-4f41-9d21-671a8ef855f9",
+      "name": "Session Row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3380,
+        0
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify($('Outgoing').first().json.session) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "f4fbb1d3-9fb4-4e94-a276-c2a19b79436c",
+      "name": "Save Session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3600,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<SESSIONS_DATA_TABLE_ID>"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "condition": "eq",
+              "keyValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d7e8351e-a3ff-491d-bad7-067936b4b686",
+      "name": "Has Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3820,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "96f683d1-0b1d-4c7e-a8a5-38eb9bb980f6",
+              "leftValue": "={{ $('Outgoing').first().json.image_url }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d610acc6-0a69-4ef8-97c9-45e5d0dd6cbe",
+      "name": "Send Image",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        4040,
+        -120
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Outgoing').first().json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Outgoing').first().json.phone }}",
+        "messageType": "image",
+        "mediaLink": "={{ $('Outgoing').first().json.image_url }}",
+        "additionalFields": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "71112960-a0be-493f-bd8b-728ddc92ff33",
+      "name": "Confirmed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4260,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9f565e16-d196-4a15-88c2-92da00981946",
+              "leftValue": "={{ $('Outgoing').first().json.confirmed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "<LEADS_SHEET_ID>",
+          "mode": "list",
+          "cachedResultName": "Leads/Meetings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<LEADS_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<LEADS_SHEET_ID>/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lead_id": "={{ $('Outgoing').first().json.event_id }}",
+            "customer_name": "={{ $('Outgoing').first().json.lead.customer_name }}",
+            "phone_number": "={{ $('Outgoing').first().json.lead.phone }}",
+            "property_id": "={{ $('Outgoing').first().json.lead.listing_id }}",
+            "budget": "={{ $('Outgoing').first().json.lead.budget }}",
+            "area": "={{ $('Outgoing').first().json.lead.locality }}",
+            "meeting_date": "={{ $('Outgoing').first().json.lead.en_date }}",
+            "meeting_time": "={{ $('Outgoing').first().json.lead.en_time }}",
+            "conversation_summary": "={{ $('Outgoing').first().json.session.history }}",
+            "status": "confirmed",
+            "created_at": "={{ $now.toISO() }}",
+            "id": "={{ $('Outgoing').first().json.event_id }}",
+            "htmlLink": "={{ $('Outgoing').first().json.event_link }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "lead_id",
+              "displayName": "lead_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "property_id",
+              "displayName": "property_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget",
+              "displayName": "budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "area",
+              "displayName": "area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meeting_date",
+              "displayName": "meeting_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "meeting_time",
+              "displayName": "meeting_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "conversation_summary",
+              "displayName": "conversation_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_score",
+              "displayName": "lead_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "start",
+              "displayName": "start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "end",
+              "displayName": "end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "creator",
+              "displayName": "creator",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "organizer",
+              "displayName": "organizer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created",
+              "displayName": "created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated",
+              "displayName": "updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "etag",
+              "displayName": "etag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "eventType",
+              "displayName": "eventType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "htmlLink",
+              "displayName": "htmlLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "iCalUID",
+              "displayName": "iCalUID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kind",
+              "displayName": "kind",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reminders",
+              "displayName": "reminders",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sequence",
+              "displayName": "sequence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c79f79c5-eb7f-421d-9b4d-d5d974b6b52f",
+      "name": "Save Lead (Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        4480,
+        -100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your googleSheetsOAuth2Api credential>"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "3e3aabb3-d235-4bdf-bfcc-ffcea155ecc7",
+      "name": "Notify Broker",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        4700,
+        -100
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Outgoing').first().json.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('Outgoing').first().json.lead.broker_phone }}",
+        "textBody": "=🔔 *New site visit booked*\n\nProperty: {{ $('Outgoing').first().json.lead.title }} ({{ $('Outgoing').first().json.lead.listing_id }})\nCustomer: {{ $('Outgoing').first().json.lead.customer_name }} (+{{ $('Outgoing').first().json.lead.phone }})\nDate: {{ $('Outgoing').first().json.lead.en_date }}\nTime: {{ $('Outgoing').first().json.lead.en_time }}\n\nBooked via Vulturus.",
+        "additionalFields": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "752ebe37-49b8-49ec-88db-0f8084a7f4dd",
+      "name": "Send Fallback",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        300
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "<CREDENTIAL_ID>",
+          "name": "<your whatsAppApi credential>"
+        }
+      },
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('WhatsApp Trigger').first().json.metadata.phone_number_id }}",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').first().json.messages[0].from }}",
+        "textBody": "Sorry, I'm having a small technical issue 🙏 Please try again in a minute.",
+        "additionalFields": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a9774cf0-50ba-447a-b11e-4a858da4fe93",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -420
+      ],
+      "parameters": {
+        "width": 760,
+        "height": 300,
+        "content": "## Vulturus v2 – fast WhatsApp bot\n1. Message in → **typing…** shown at once\n2. Session from Data Table `vulturus_sessions` (duplicates skipped)\n3. **One AI call** (gpt-4.1-mini): intent + details (+ reply for chat only)\n4. Properties from Data Table `vulturus_properties` → **Brain** code builds the reply from templates (en / hi / mr / hinglish)\n5. Booking: check calendar → create event → confirm\n6. **Reply sent**, then session saved, photo sent, lead saved & broker notified\nProperties sheet edits sync via *Vulturus v2 – Listings & sync*."
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Text?": {
+      "main": [
+        [
+          {
+            "node": "Typing…",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Message?": {
+      "main": [
+        [
+          {
+            "node": "Send Unsupported",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Typing…": {
+      "main": [
+        [
+          {
+            "node": "Get Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Session": {
+      "main": [
+        [
+          {
+            "node": "New Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Message?": {
+      "main": [
+        [
+          {
+            "node": "Understand Message (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Understand Message (AI)": {
+      "main": [
+        [
+          {
+            "node": "Get Properties",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI (gpt-4.1-mini)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Understand Message (AI)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Output Format": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Understand Message (AI)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Properties": {
+      "main": [
+        [
+          {
+            "node": "Brain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brain": {
+      "main": [
+        [
+          {
+            "node": "Check Slot?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slot?": {
+      "main": [
+        [
+          {
+            "node": "Check Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Outgoing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Calendar": {
+      "main": [
+        [
+          {
+            "node": "Slot Free?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Free?": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Use Taken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Use Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Confirmed": {
+      "main": [
+        [
+          {
+            "node": "Outgoing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Taken": {
+      "main": [
+        [
+          {
+            "node": "Outgoing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outgoing": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply": {
+      "main": [
+        [
+          {
+            "node": "Session Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Row": {
+      "main": [
+        [
+          {
+            "node": "Save Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Session": {
+      "main": [
+        [
+          {
+            "node": "Has Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Image?": {
+      "main": [
+        [
+          {
+            "node": "Send Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirmed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Image": {
+      "main": [
+        [
+          {
+            "node": "Confirmed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmed?": {
+      "main": [
+        [
+          {
+            "node": "Save Lead (Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Save Lead (Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Notify Broker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
