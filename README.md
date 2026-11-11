@@ -45,6 +45,7 @@ WhatsApp user ──► WhatsApp number ──► Meta app (Live, subscribed to 
 | [docs/13-vulturus-v2-fast-architecture.md](docs/13-vulturus-v2-fast-architecture.md) | **Vulturus v2**: 1 AI call + code templates + Data Tables, 10–18 s → ~3–5 s |
 | [docs/14-real-number-onboarding-2026-11.md](docs/14-real-number-onboarding-2026-11.md) | Real number: blocked WABA creation, workaround, remaining steps |
 | [docs/15-backup-hosting-and-costs.md](docs/15-backup-hosting-and-costs.md) | Backup before trial end, restore, hosting options, costs |
+| [docs/16-pikapods-migration-2026-11-11.md](docs/16-pikapods-migration-2026-11-11.md) | Moving the live bot from n8n Cloud to self-hosted n8n on PikaPods (credentials, Google OAuth, safe test, switch-over order) |
 | [sessions/2026-11-08-vulturus-session.md](sessions/2026-11-08-vulturus-session.md) | **Start here to resume:** current state, open items, timeline, n8n REST calls |
 | [checklists/vulturus-go-live-checklist.md](checklists/vulturus-go-live-checklist.md) | Vulturus done / to-do |
 | [troubleshooting.md](troubleshooting.md) | Every problem hit during the real setup, with fixes |

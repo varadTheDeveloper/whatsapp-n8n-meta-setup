@@ -61,3 +61,12 @@ Agent: Claude, working in the owner's Chrome (n8n Cloud, Google Sheets, Meta for
 | `GET/POST /rest/projects/<pid>/data-tables`, `…/<tid>/rows`, `DELETE …/rows?filter=…` | Data Tables |
 | `POST /rest/dynamic-node-parameters/resource-locator-results` | e.g. list OpenAI models = tests a credential |
 | `GET /types/nodes.json`, `/types/credentials.json` | node / credential schemas |
+
+
+## Update 2026-11-11 – moved to PikaPods
+
+- The live bot and sync now run on a **self-hosted n8n on PikaPods**. The n8n Cloud copies are deactivated (trial ended 11 Nov).
+- Credentials on the pod: OpenAI, WhatsApp send (new system-user token, never expires), WhatsApp trigger (App secret), and 4 Google OAuth2 credentials made with an own Google Cloud OAuth client (consent screen in production).
+- Verified: test copy with sends off (correct reply), Google read check, then a real "Hi" from a phone → reply sent in about 6 s.
+- Full steps and gotchas: [`docs/16-pikapods-migration-2026-11-11.md`](../docs/16-pikapods-migration-2026-11-11.md).
+- Open: real number onboarding, broker template + payment method, delete the 2 inactive TEST workflows on the pod.

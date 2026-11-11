@@ -73,4 +73,7 @@ See `troubleshooting.md`. The two big ones:
 - **Only one active workflow per Meta app with a WhatsApp Trigger.** Before go-live, list workflows and make sure the old bot is unpublished first, then publish the new one.
 - **Never put real IDs in this repo.** Sanitize exports (sheet IDs, phone-number IDs, data-table IDs, calendar emails, credential IDs, instance URL). Keep the raw backup private.
 - **Verify by reading data, not by trusting "done":** check executions, Data Table rows and sheet rows after each test.
+- **Switching n8n instances: deactivate the old WhatsApp Trigger workflow FIRST, then activate the new one.** Deactivating deletes the app's webhook subscription, so doing it second would cut off the new instance. Afterwards, check Meta → Webhooks → *WhatsApp Business Account* callback URL. (`docs/16`)
+- **Safest bot test:** on a copy, replace the WhatsApp Trigger with a Code node *of the same name* that returns a sample payload, plus a Manual Trigger in front. No trigger means nothing can listen to Meta.
+- **Self-hosted n8n needs its own Google OAuth client.** Publish the consent screen to *In production*, otherwise refresh tokens expire after 7 days.
 - Current project state and open items: [`sessions/2026-11-08-vulturus-session.md`](sessions/2026-11-08-vulturus-session.md).
