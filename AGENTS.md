@@ -64,3 +64,16 @@ See `troubleshooting.md`. The two big ones:
 - **Execute step / Listen for test event** listens briefly and for one event, then stops. Use **Publish** for always-on.
 - Recipient expression: `{{ $json.messages[0].from }}` (switch the field to **Expression** first).
 - Credential popups lose unsaved data if closed — always confirm **Save**.
+
+## 7. Lessons from the Vulturus build (2026-11)
+
+- **Never run a WhatsApp-trigger workflow manually/through the API without saved pin data.** It starts listening and can re-point the Meta webhook away from the live bot (`troubleshooting.md` #14). Test on a **copy** with pin data saved, all send nodes disabled, and a fake sender number; delete its session row afterwards.
+- **Edit as drafts.** In n8n 2.x, saving changes the draft (`versionId`); the live version (`activeVersionId`) changes only on publish. Publishing/unpublishing is a production change — get the human's explicit OK first.
+- **Back up before changing** a live workflow (duplicate it via `POST /rest/workflows`).
+- **Only one active workflow per Meta app with a WhatsApp Trigger.** Before go-live, list workflows and make sure the old bot is unpublished first, then publish the new one.
+- **Never put real IDs in this repo.** Sanitize exports (sheet IDs, phone-number IDs, data-table IDs, calendar emails, credential IDs, instance URL). Keep the raw backup private.
+- **Verify by reading data, not by trusting "done":** check executions, Data Table rows and sheet rows after each test.
+- **Switching n8n instances: deactivate the old WhatsApp Trigger workflow FIRST, then activate the new one.** Deactivating deletes the app's webhook subscription, so doing it second would cut off the new instance. Afterwards, check Meta → Webhooks → *WhatsApp Business Account* callback URL. (`docs/16`)
+- **Safest bot test:** on a copy, replace the WhatsApp Trigger with a Code node *of the same name* that returns a sample payload, plus a Manual Trigger in front. No trigger means nothing can listen to Meta.
+- **Self-hosted n8n needs its own Google OAuth client.** Publish the consent screen to *In production*, otherwise refresh tokens expire after 7 days.
+- Current project state and open items: [`sessions/2026-11-08-vulturus-session.md`](sessions/2026-11-08-vulturus-session.md).

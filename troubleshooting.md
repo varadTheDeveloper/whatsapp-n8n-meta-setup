@@ -50,3 +50,39 @@ Listed in the order they happened.
 
 ### 13. Agent refuses to paste token/App Secret
 **Expected.** Agents must not type secrets. The human pastes; the agent fills every other field and verifies afterwards.
+
+---
+
+## Added 2026-11-08 → 11 (Vulturus v1 → v2, real number)
+
+### 14. Manual/API run of a WhatsApp-trigger workflow starts "listening" and can unhook the live bot
+**Cause:** `POST /rest/workflows/<id>/run` (or *Execute workflow*) on a workflow whose WhatsApp Trigger has **no saved pin data** registers a **test** webhook — the trigger's create/delete hooks re-point (and later remove) the Meta app subscription.
+**Fix:** stop it at once with `DELETE /rest/test-webhook/<id>`, then send a real message to check the live bot still answers; if not, unpublish/publish the live workflow. **Prevent:** test only on a copy with pin data **saved** in the workflow and sends disabled.
+
+### 15. "Next" disabled in *Add phone number* → *Select your business assets* (no error shown)
+**Cause:** creating a new WABA is blocked — the portfolio already had 8 WABAs.
+**Fix:** add the number to an existing empty WABA from **WhatsApp Manager → Phone numbers → Add phone number**. `docs/14`.
+
+### 16. Virtual-number option needs business verification
+"Use a display name with a virtual number instead" → business + display name reviewed (up to 5 business days), needs a verified registered business. Not offered in WhatsApp Manager's flow.
+
+### 17. Display name rejected risk
+Display name must match the verified business name/website. Use the verified name first; rename to a brand after the website shows the brand.
+
+### 18. Typed text loses characters in Meta forms
+Page re-renders while typing. Set the value with the native setter + `input` event (or type slowly), then zoom-screenshot to verify.
+
+### 19. Broker alert fails: error `131047` "Re-engagement message"
+Free-form message to someone who hasn't messaged you in 24 h. Use an approved **template**.
+
+### 20. Executions burned by delivery receipts
+Each sent message produces `statuses` webhooks (sent/delivered/read) → each is an n8n execution (~4 per message). They exit early but count on n8n Cloud plans.
+
+### 21. "Pune" search returned nothing / "furnished" matched "unfurnished"
+Exact string matching. Treat city-wide words as *no filter*, normalise aliases ("Hinjawadi"→"hinjewadi", "Phase 1"), canonicalise furnishing/type. See `workflows/vulturus/code/brain.js`.
+
+### 22. Session memory never saved
+Save node mapped fields from a node *before* the reply was composed. Map from the node that holds the **updated** state. `docs/12` #1.
+
+### 23. n8n Cloud code node adds ~1.7 s sometimes
+Cold start of the code runner. Keep one code node on the hot path; warm runs take ~15 ms.
